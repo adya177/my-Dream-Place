@@ -1,165 +1,42 @@
-// Footer.js
-// import Image from "next/image";
 import logo from "../assets/logo (2).png";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
+  const linkClass = "text-slate-600 transition hover:text-blue-700";
   return (
-    <footer className="bg-gray-50 py-10 ">
-      <h2 className="text-3xl font-semibold text-gray-900 mt-8 text-center">
-        Explore the world with My Dream place
-      </h2>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex mt-8">
-        <div id="about" className="mb-10 scroll-mt-6">
-          <div className="">
-            <img src={logo} alt="Logo" className="h-8 w-auto" />
-            <h1 className="text-2xl font-semibold text-gray-900">
-
-            </h1>
-          </div>
-          <p className="text-gray-600 mt-2">
-            Your next go-to companion for travel
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Company Links */}
+    <footer className="mt-16 border-t border-slate-200 bg-slate-50">
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Company
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  About
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Jobs
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Newsroom
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Advertising
-                </a>
-              </li>
-              <li id="contact" className="scroll-mt-6">
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Contact us
-                </a>
-              </li>
+            <Link to="/" aria-label="My Dream Place home"><img src={logo} alt="My Dream Place" className="h-9 w-auto" /></Link>
+            <p className="mt-4 max-w-xs leading-6 text-slate-600">Your next go-to companion for discovering places and planning memorable stays.</p>
+          </div>
+          <div>
+            <h2 className="font-semibold text-slate-900">Company</h2>
+            <ul className="mt-4 space-y-3">
+              <li><Link className={linkClass} to="/about">About us</Link></li>
+              <li><Link className={linkClass} to="/activities">Travel inspiration</Link></li>
+              <li><Link className={linkClass} to="/contact">Contact and help</Link></li>
             </ul>
           </div>
-
-          {/* Explore Links */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Explore
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Australia
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  New Zealand
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  United States America (USA)
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Greece
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Maldives
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Singapore
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-blue-500 hover:underline">
-                  See more
-                </a>
-              </li>
+            <h2 className="font-semibold text-slate-900">Explore</h2>
+            <ul className="mt-4 space-y-3">
+              <li><Link className={linkClass} to="/discover">Destinations</Link></li>
+              <li><Link className={linkClass} to="/search">Find a stay</Link></li>
+              <li><Link className={linkClass} to="/activities">Trip ideas</Link></li>
             </ul>
           </div>
-
-          {/* Terms and Policies Links */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Terms and Policies
-            </h3>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Terms of use
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Accessibility
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Reward system policy
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Help Links */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Help</h3>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Support
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Cancel your bookings
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Use Coupon
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  Refund Policies
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-gray-900">
-                  International Travel Documents
-                </a>
-              </li>
+            <h2 className="font-semibold text-slate-900">Your account</h2>
+            <ul className="mt-4 space-y-3">
+              <li><Link className={linkClass} to="/login">Sign in</Link></li>
+              <li><Link className={linkClass} to="/register">Create an account</Link></li>
+              <li><Link className={linkClass} to="/cart">Saved trips</Link></li>
             </ul>
           </div>
         </div>
+        <div className="mt-10 border-t border-slate-200 pt-6 text-sm text-slate-500">Explore the world with My Dream Place.</div>
       </div>
     </footer>
   );
