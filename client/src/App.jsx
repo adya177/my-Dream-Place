@@ -129,6 +129,7 @@ function App() {
         <Route path="/destination/:slug" element={<DestinationGuide />} />
         <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin-login" element={<Login expectedRole="admin" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/payment" element={<Payment />} />
