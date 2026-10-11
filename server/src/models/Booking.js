@@ -25,6 +25,11 @@ const bookingSchema = new mongoose.Schema({
     enum: ["unpaid", "paid"],
     default: "unpaid",
   },
+  paymentMethod: {
+    type: String,
+    enum: ["card", "property"],
+    default: "card",
+  },
   transactionId: {
     type: String,
   },

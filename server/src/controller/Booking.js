@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import User from "../models/User.js";
+import Category from "../models/Category.js";
 
 export const searchBookings = async (req, res) => {
   try {
@@ -21,14 +22,21 @@ export const searchBookings = async (req, res) => {
       .map(escapeRegex)
       .join("|");
 
-    // Match the destination name as well as listing titles and descriptions.
+    const destinationCategories = await Category.find({
+      name: { $regex: phrase, $options: "i" },
+    }).select("_id");
+
+    // Match destinations, listing titles, locations, and descriptions.
     const results = await Post.find({
       $or: [
         { title: { $regex: phrase, $options: "i" } },
         { hotelLocation: { $regex: phrase, $options: "i" } },
         { description: { $regex: words, $options: "i" } },
+        ...(destinationCategories.length
+          ? [{ category: { $in: destinationCategories.map(({ _id }) => _id) } }]
+          : []),
       ],
-    }).select("title hotelLocation images description slug");
+    }).select("title hotelLocation images description slug price isAvailable");
 
     res.json(results);
   } catch (error) {
@@ -121,13 +129,27 @@ export const updateAvailability = async (req, res) => {
 
 export const createBooking = async (req, res) => {
   try {
-    const { token, postId, bookingDate, transactionId } = req.body;
+    const {
+      token,
+      postId,
+      bookingDate,
+      transactionId,
+      paymentStatus = "paid",
+      paymentMethod = "card",
+    } = req.body;
 
-    if (!token || !postId || !bookingDate || !transactionId) {
+    if (
+      !token ||
+      !postId ||
+      !bookingDate ||
+      !["paid", "unpaid"].includes(paymentStatus) ||
+      !["card", "property"].includes(paymentMethod) ||
+      (paymentMethod === "property" && paymentStatus !== "unpaid") ||
+      (paymentStatus === "paid" && !transactionId)
+    ) {
       return res.status(400).json({
         success: false,
-        message:
-          "All fields are required: token, postId, bookingDate, transactionId.",
+        message: "A valid token, stay, booking date, and payment details are required.",
       });
     }
 
@@ -165,8 +187,9 @@ export const createBooking = async (req, res) => {
       user: userId, // Use the decoded userId here
       post: postId,
       bookingDate,
-      transactionId,
-      paymentStatus: "paid",
+      transactionId: transactionId || undefined,
+      paymentStatus,
+      paymentMethod,
     });
 
     const savedBooking = await booking.save();

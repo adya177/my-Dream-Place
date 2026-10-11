@@ -54,6 +54,14 @@ const YourOrder = () => {
                 <p className="text-gray-600 text-lg">
                   <span className="font-semibold">Price:</span> ${order.amount}
                 </p>
+                <p className="mt-2 text-sm text-gray-600">
+                  <span className="font-semibold">Payment:</span>{" "}
+                  {order.paymentMethod === "property"
+                    ? "Pay at the property · due on arrival"
+                    : order.paymentStatus === "unpaid"
+                      ? "Payment pending"
+                      : "Paid online"}
+                </p>
               </div>
               <div className="flex justify-center lg:justify-between items-center">
                 <button
@@ -61,7 +69,7 @@ const YourOrder = () => {
                   onClick={() => handleCheckout(order._id, order.postId)}
                 >
                   <FaShoppingCart />
-                  <span>Checkout</span>
+                  <span>Check out and release stay</span>
                 </button>
               </div>
             </div>
