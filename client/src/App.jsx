@@ -1,7 +1,8 @@
 import Advertisement from "./components/Advertisement";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import HomePage from "./pages/HomePage";
 import SearchPage from "./pages/SearchPage";
 import ProductDetails from "./pages/ProductDetails";
@@ -98,10 +99,19 @@ const ContactPage = () => (
   </main>
 );
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname]);
+  return null;
+};
+
 
 function App() {
   return (
     <>
+      <ScrollToTop />
       <Navbar />
       <Routes>
         <Route path="/" element={<HomePage />} />

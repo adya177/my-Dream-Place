@@ -1,45 +1,38 @@
 import logo from "../assets/logo (2).png";
 import { Link } from "react-router-dom";
 
-const Footer = () => {
-  const linkClass = "text-slate-600 transition hover:text-blue-700";
-  return (
-    <footer className="mt-16 border-t border-slate-200 bg-slate-50">
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <Link to="/" aria-label="My Dream Place home"><img src={logo} alt="My Dream Place" className="h-9 w-auto" /></Link>
-            <p className="mt-4 max-w-xs leading-6 text-slate-600">Your next go-to companion for discovering places and planning memorable stays.</p>
-          </div>
-          <div>
-            <h2 className="font-semibold text-slate-900">Company</h2>
-            <ul className="mt-4 space-y-3">
-              <li><Link className={linkClass} to="/about">About us</Link></li>
-              <li><Link className={linkClass} to="/activities">Travel inspiration</Link></li>
-              <li><Link className={linkClass} to="/contact">Contact and help</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h2 className="font-semibold text-slate-900">Explore</h2>
-            <ul className="mt-4 space-y-3">
-              <li><Link className={linkClass} to="/discover">Destinations</Link></li>
-              <li><Link className={linkClass} to="/search">Find a stay</Link></li>
-              <li><Link className={linkClass} to="/activities">Trip ideas</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h2 className="font-semibold text-slate-900">Your account</h2>
-            <ul className="mt-4 space-y-3">
-              <li><Link className={linkClass} to="/login">Sign in</Link></li>
-              <li><Link className={linkClass} to="/register">Create an account</Link></li>
-              <li><Link className={linkClass} to="/cart">Saved trips</Link></li>
-            </ul>
-          </div>
+const groups = [
+  { title: "Company", links: [["About us", "/about"], ["Travel inspiration", "/activities"], ["Contact and help", "/contact"]] },
+  { title: "Explore", links: [["Destinations", "/discover"], ["Find a stay", "/search"], ["Trip ideas", "/activities"]] },
+  { title: "Your account", links: [["Sign in", "/login"], ["Create an account", "/register"], ["Saved trips", "/cart"]] },
+];
+
+const Footer = () => (
+  <footer className="mt-20 border-t border-slate-200 bg-white">
+    <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
+      <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        <div>
+          <Link to="/" aria-label="My Dream Place home" className="inline-flex rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+            <img src={logo} alt="My Dream Place" className="h-10 w-auto" />
+          </Link>
+          <p className="mt-4 max-w-xs text-sm leading-6 text-slate-600">Your companion for discovering places and planning memorable stays.</p>
+          <Link to="/search" className="mt-5 inline-flex font-semibold text-blue-700 hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">Find your next stay <span className="ml-2" aria-hidden="true">→</span></Link>
         </div>
-        <div className="mt-10 border-t border-slate-200 pt-6 text-sm text-slate-500">Explore the world with My Dream Place.</div>
+        {groups.map((group) => (
+          <nav key={group.title} aria-label={group.title}>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-900">{group.title}</h2>
+            <ul className="mt-4 space-y-3">
+              {group.links.map(([label, to]) => <li key={to + label}><Link className="inline-flex rounded text-sm text-slate-600 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600" to={to}>{label}</Link></li>)}
+            </ul>
+          </nav>
+        ))}
       </div>
-    </footer>
-  );
-};
+      <div className="mt-10 flex flex-col gap-2 border-t border-slate-200 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <span>© {new Date().getFullYear()} My Dream Place</span>
+        <span>Explore the world, one stay at a time.</span>
+      </div>
+    </div>
+  </footer>
+);
 
 export default Footer;
