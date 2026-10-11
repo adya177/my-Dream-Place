@@ -10,8 +10,6 @@ const CartPage = () => {
   const [cart, setCart] = useCart();
   const navigate = useNavigate();
 
-  console.log("All Information about cart:", cart);
-
   const handleCheckIn = () => {
     if (!auth?.token) {
       toast.error("Authentication required to proceed!");
@@ -23,10 +21,6 @@ const CartPage = () => {
       return;
     }
 
-    // Log the total price and product details
-    console.log("Total Price:", totalPrice());
-
-    // Pass cart details to the payment page
     navigate("/payment", {
       state: {
         totalPrice: totalPrice(),
@@ -68,94 +62,38 @@ const CartPage = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row w-full p-6 gap-8 bg-gray-50">
-      {/* Left Side - Product Details */}
-      <div className="w-full lg:w-2/3 bg-white p-6 rounded-lg">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800">Your Cart</h2>
-        {cart.length > 0 ? (
-          cart.map((product) => {
-            console.log("Product Details:", product); // Log to ensure product details are present
-            return (
-              <div
-                key={product._id}
-                className="flex items-center gap-6 p-4 border-b border-gray-200 last:border-none"
-              >
-                {/* Remove Button */}
-                <button
-                  onClick={() => handleRemove(product._id)}
-                  className="text-red-500 hover:text-red-700 transition"
-                >
-                  <FaTrashAlt size={20} />
-                </button>
-                {/* Product Image */}
-                <img
-                  src={product.images[0]}
-                  alt={product.title}
-                  className="w-28 h-28 object-cover rounded-lg"
-                />
-                {/* Product Info */}
-                <div className="flex flex-col">
-                  <h3 className="text-xl font-semibold text-gray-700">
-                    {product.title}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    {product.description.substring(0, 50)}
-                  </p>
-                </div>
-                {/* Product Price */}
-                <div className="ml-auto text-lg font-semibold text-gray-800">
-                  ${product.price}
-                </div>
-              </div>
-            );
-          })
+    <main className="min-h-[55vh] bg-slate-50 px-5 py-10 sm:px-8 lg:py-14">
+      <div className="mx-auto max-w-6xl">
+        <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Your getaway</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Saved stays</h1>
+        <p className="mt-2 text-slate-600">Review your choices and continue when you’re ready.</p>
+        {cart.length ? (
+          <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <section aria-label="Saved stays" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 px-5 py-4 sm:px-6"><h2 className="font-semibold text-slate-900">{cart.length} {cart.length === 1 ? "stay" : "stays"} saved</h2></div>
+              <ul className="divide-y divide-slate-100 px-5 sm:px-6">
+                {cart.map((product) => (
+                  <li key={product._id} className="flex flex-wrap items-center gap-4 py-5 sm:flex-nowrap">
+                    {product.images?.[0] ? <img src={product.images[0]} alt={product.title || "Stay"} className="h-24 w-28 shrink-0 rounded-xl object-cover sm:h-28 sm:w-36" /> : <div className="flex h-24 w-28 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-500 sm:h-28 sm:w-36">Photo coming soon</div>}
+                    <div className="min-w-0 flex-1"><h3 className="font-semibold text-slate-900">{product.title}</h3><p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">{product.description || "A place to make your next trip memorable."}</p><p className="mt-2 text-sm font-bold text-slate-900">${Number(product.price || 0).toLocaleString("en-US")}</p></div>
+                    <button type="button" onClick={() => handleRemove(product._id)} aria-label={`Remove ${product.title} from saved stays`} className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"><FaTrashAlt size={16} /></button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
+              <h2 className="text-lg font-bold text-slate-900">Price summary</h2>
+              <div className="mt-5 space-y-3">{cart.map((product) => <div key={product._id} className="flex justify-between gap-4 text-sm text-slate-600"><span className="truncate">{product.title}</span><span className="shrink-0 font-medium text-slate-800">${Number(product.price || 0).toLocaleString("en-US")}</span></div>)}</div>
+              <div className="mt-5 flex justify-between border-t border-slate-200 pt-5 text-lg font-bold text-slate-900"><span>Total</span><span>{totalPrice()}</span></div>
+              <button type="button" className="mt-6 w-full rounded-xl bg-blue-600 px-5 py-3.5 font-semibold text-white shadow-sm transition hover:bg-blue-700" onClick={auth?.token ? handleCheckIn : () => navigate("/login")}>{auth?.token ? "Continue to checkout" : "Sign in to continue"}<span aria-hidden="true" className="ml-2">→</span></button>
+              <p className="mt-3 text-center text-xs leading-5 text-slate-500">You can choose card payment or pay at the property during checkout.</p>
+            </aside>
+          </div>
         ) : (
-          <p className="text-gray-500 text-center mt-6">Your cart is empty.</p>
+          <section className="mt-8 rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-2xl text-blue-700">♡</div><h2 className="mt-5 text-2xl font-bold text-slate-900">Your saved stays will appear here</h2><p className="mx-auto mt-2 max-w-lg leading-7 text-slate-600">Explore destinations and save the places you’d love to stay.</p><button type="button" onClick={() => navigate("/search")} className="mt-6 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">Explore stays <span aria-hidden="true" className="ml-2">→</span></button></section>
         )}
       </div>
-
-      {/* Right Side - Price Summary */}
-      <div className="w-full lg:w-1/3 bg-white p-6 rounded-lg">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800">Price Details</h2>
-        {cart.length > 0 ? (
-          <>
-            <div className="flex flex-col gap-4">
-              {cart.map((product) => (
-                <div
-                  key={product._id}
-                  className="flex justify-between items-center text-gray-700"
-                >
-                  <span>{product.title}</span>
-                  <span className="font-semibold">${product.price}</span>
-                </div>
-              ))}
-            </div>
-            <hr className="my-6 border-gray-300" />
-            <div className="flex justify-between items-center font-bold text-xl text-gray-800">
-              <span>Total:</span>
-              <span>{totalPrice()}</span>
-            </div>
-            {auth?.token ? (
-              <button
-                className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg text-lg font-semibold"
-                onClick={handleCheckIn}
-              >
-                Proceed to Checkout
-              </button>
-            ) : (
-              <button
-                className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg text-lg font-semibold"
-                onClick={() => navigate("/login")}
-              >
-                Please Login
-              </button>
-            )}
-          </>
-        ) : (
-          <p className="text-gray-500">No items to display.</p>
-        )}
-      </div>
-    </div>
+    </main>
   );
 };
 

@@ -4,12 +4,12 @@ import UserDetails from "./UserDetails";
 
 const UserDashboard = () => {
   return (
-    <div className="flex justify-center items-start p-10 bg-gray-50 min-h-screen">
-      <div className="flex shadow-lg rounded-lg overflow-hidden bg-white min-h-[28rem] w-[82rem]">
+    <main className="min-h-[60vh] bg-slate-50 px-4 py-8 sm:px-8 lg:py-12">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:flex">
         <Navbar />
         <UserDetails />
       </div>
-    </div>
+    </main>
   );
 };
 

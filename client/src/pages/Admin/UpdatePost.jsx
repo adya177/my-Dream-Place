@@ -116,21 +116,17 @@ const UpdatePost = () => {
   };
 
   return (
-    <div className="flex justify-between text-black">
-      <div className="ml-[4rem]">
-        <Navbar />
-      </div>
-      <div className="flex flex-col p-8 w-[81%]">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">
-          Update Your Post
-        </h1>
+    <main className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 lg:flex-row lg:px-8">
+      <Navbar />
+      <section className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+        <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Workspace</p><h1 className="mb-7 mt-2 text-3xl font-bold tracking-tight text-slate-900">Update stay details</h1>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <input
             type="text"
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-[81%] p-3 border bg-white border-gray-300 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl p-3 border bg-white border-gray-300 rounded focus:outline-none focus:border-blue-500"
             required
           />
           <input
@@ -138,14 +134,14 @@ const UpdatePost = () => {
             placeholder="Hotel Location"
             value={hotelLocation}
             onChange={(e) => setHotelLocation(e.target.value)}
-            className="w-[81%] bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
             required
           />
           <textarea
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-[81%] bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
             required
           />
           <input
@@ -153,14 +149,14 @@ const UpdatePost = () => {
             placeholder="Facilities"
             value={facilities}
             onChange={(e) => setFacilities(e.target.value)}
-            className="w-[81%] bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
           />
           <input
             type="number"
             placeholder="Price"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="w-[81%] bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
             required
           />
           <input
@@ -168,12 +164,12 @@ const UpdatePost = () => {
             placeholder="Nearby Area"
             value={nearArea}
             onChange={(e) => setNearArea(e.target.value)}
-            className="w-[81%] bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl bg-white p-3 border border-gray-300 rounded focus:outline-none focus:border-blue-500"
           />
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-[81%] bg-white border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl bg-white border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
           >
             <option value="">Select a category</option>
             {Array.isArray(categories) &&
@@ -187,7 +183,7 @@ const UpdatePost = () => {
           <select
             value={guest}
             onChange={(e) => setGuest(e.target.value)}
-            className="w-[81%] bg-white border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl bg-white border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
           >
             {[...Array(6)].map((_, i) => (
               <option key={i} value={i + 1}>
@@ -201,13 +197,13 @@ const UpdatePost = () => {
             onChange={(e) =>
               setIsAvailable(e.target.value === "true" ? true : false)
             }
-            className="w-[81%] bg-white border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
+            className="w-full max-w-2xl bg-white border border-gray-300 p-2 rounded focus:outline-none focus:border-blue-500"
           >
             <option value={true}>Yes</option>
             <option value={false}>No</option>
           </select>
 
-          <div className="w-[81%] p-3 border border-gray-300 rounded">
+          <div className="w-full max-w-2xl p-3 border border-gray-300 rounded">
             <label className="flex items-center cursor-pointer">
               <FaImage className="mr-2 text-gray-600" />
               <span>Upload Images (max 3)</span>
@@ -241,13 +237,13 @@ const UpdatePost = () => {
 
           <button
             type="submit"
-            className="w-[81%] bg-blue-600 text-white p-3 rounded hover:bg-blue-700 transition duration-300"
+            className="w-full max-w-2xl bg-blue-600 text-white p-3 rounded hover:bg-blue-700 transition duration-300"
           >
             Submit Post
           </button>
         </form>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

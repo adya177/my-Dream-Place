@@ -1,4 +1,4 @@
-import logo from "../assets/logo (2).png";
+import BrandLogo from "./BrandLogo";
 import { Link } from "react-router-dom";
 
 const groups = [
@@ -13,7 +13,7 @@ const Footer = () => (
       <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div>
           <Link to="/" aria-label="My Dream Place home" className="inline-flex rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
-            <img src={logo} alt="My Dream Place" className="h-10 w-auto" />
+            <BrandLogo />
           </Link>
           <p className="mt-4 max-w-xs text-sm leading-6 text-slate-600">Your companion for discovering places and planning memorable stays.</p>
           <Link to="/search" className="mt-5 inline-flex font-semibold text-blue-700 hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">Find your next stay <span className="ml-2" aria-hidden="true">→</span></Link>

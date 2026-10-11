@@ -32,15 +32,15 @@ const AllPost = () => {
     return () => clearInterval(interval);
   }, []);
   return (
-    <div className="flex ml-16 mt-8">
+    <main className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 lg:flex-row lg:px-8">
       <Navbar />
-      <div className="flex flex-col items-center w-[92%] p-8 relative bottom-7">
-        <h1 className="text-2xl font-bold mb-8">Your All Posts</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <section className="min-w-0 flex-1 p-2 sm:p-5">
+        <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Workspace</p><h1 className="mb-7 mt-2 text-3xl font-bold tracking-tight text-slate-900">All stays</h1>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {posts.map((post, index) => (
             <article
               key={post._id}
-              className="relative isolate flex flex-col justify-end overflow-hidden rounded-2xl px-8 pb-8 pt-40 w-[21rem] mx-auto shadow-lg"
+              className="relative isolate flex min-h-72 w-full flex-col justify-end overflow-hidden rounded-2xl px-6 pb-6 pt-32 shadow-lg"
             >
               <img
                 src={post.images[currentImageIndex]}
@@ -60,8 +60,8 @@ const AllPost = () => {
             </article>
           ))}
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

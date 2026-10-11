@@ -9,21 +9,15 @@ const UserDetails = () => {
   };
 
   return (
-    <div className="p-8 max-w-sm bg-white mt-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-        User Details
-      </h2>
-      <div className="space-y-4">
-        <div className="flex items-center">
-          <span className="font-semibold text-gray-800 w-24">Name:</span>
-          <span className="text-gray-600">{user.name}</span>
-        </div>
-        <div className="flex items-center">
-          <span className="font-semibold text-gray-800 w-24">Email:</span>
-          <span className="text-gray-600">{user.email}</span>
-        </div>
+    <section className="min-w-0 flex-1 p-6 sm:p-10 lg:p-12">
+      <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Account overview</p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Your profile</h1>
+      <p className="mt-2 text-slate-600">Your account details, all in one place.</p>
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl bg-slate-50 p-5"><span className="text-xs font-bold uppercase tracking-wide text-slate-500">Full name</span><p className="mt-2 break-words font-semibold text-slate-900">{user.name}</p></div>
+        <div className="rounded-2xl bg-slate-50 p-5"><span className="text-xs font-bold uppercase tracking-wide text-slate-500">Email address</span><p className="mt-2 break-words font-semibold text-slate-900">{user.email}</p></div>
       </div>
-    </div>
+    </section>
   );
 };
 

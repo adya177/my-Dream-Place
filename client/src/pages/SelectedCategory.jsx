@@ -43,15 +43,15 @@ const SelectedCategory = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center w-[92%] p-8 relative bottom-7 mt-11 mx-auto">
-      <h1 className="text-2xl font-bold mb-8 mt-5">{category?.name}</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <main className="mx-auto min-h-[55vh] max-w-7xl px-5 py-10 sm:px-8 lg:py-14">
+      <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Explore stays</p><h1 className="mb-7 mt-2 text-3xl font-bold tracking-tight text-slate-900">{category?.name}</h1>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {posts.map((post) => (
           <Link
             to={`/product/${post.slug}`}
             key={post._id}
             aria-label={`View ${post.title}`}
-            className="relative isolate flex flex-col justify-end overflow-hidden rounded-2xl px-8 pb-8 pt-40 w-[21rem] mx-auto shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+            className="relative isolate flex min-h-80 w-full flex-col justify-end overflow-hidden rounded-2xl px-6 pb-6 pt-32 shadow-lg transition hover:-translate-y-1 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
           >
             <img
               src={post.images?.[currentImageIndex] || post.images?.[0] || "https://via.placeholder.com/150"}
@@ -68,7 +68,7 @@ const SelectedCategory = () => {
           </Link>
         ))}
       </div>
-    </div>
+    </main>
   );
 };
 

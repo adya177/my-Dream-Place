@@ -8,21 +8,22 @@ const ThankYou = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setTimeout(() => setShowMessage(true), 500); // Trigger the message after a delay
+    const timer = setTimeout(() => setShowMessage(true), 180);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div className="h-screen bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 flex items-center justify-center relative">
+    <main className="relative flex min-h-[60vh] items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-white to-sky-100 px-5 py-16">
       <Confetti
         width={window.innerWidth}
         height={window.innerHeight}
         run={showMessage}
         numberOfPieces={200}
       />
-      <div className="text-center p-10 rounded-lg shadow-lg bg-white max-w-lg mx-auto relative z-10">
+      <div className="relative z-10 mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl shadow-blue-100 sm:p-12">
         <div className="space-y-5">
           <h1
-            className={`text-5xl font-extrabold text-gray-800 transform transition duration-1000 ${
+            className={`text-4xl font-extrabold text-slate-900 transition duration-700 sm:text-5xl ${
               showMessage
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 translate-y-10"
@@ -31,7 +32,7 @@ const ThankYou = () => {
             🎉 Thank You! 🎉
           </h1>
           <p
-            className={`text-xl text-gray-600 transform transition duration-1000 ${
+            className={`text-lg leading-7 text-slate-600 transition duration-700 ${
               showMessage
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 translate-y-10"
@@ -40,14 +41,14 @@ const ThankYou = () => {
             Thank you for using our service! We appreciate your support.
           </p>
           <button
-            className="bg-indigo-600 text-white py-2 px-6 rounded-full text-lg transition-all duration-300 hover:bg-indigo-700 focus:outline-none"
+            className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:ring-4 focus-visible:ring-blue-200"
             onClick={() => navigate("/")}
           >
             Go Back Home
           </button>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

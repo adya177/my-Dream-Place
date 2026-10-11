@@ -1,68 +1,17 @@
 import React from "react";
-import {
-  FaBed,
-  FaUser,
-  FaRulerCombined,
-  FaPlaneDeparture,
-} from "react-icons/fa";
-import related1 from "../../assets/related/Rectangle 70.png";
-import frame from "../../assets/Frame.png";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-const RelatedProduct = ({ relatedProducts }) => {
-  const navigate = useNavigate();
-  const { slug } = useParams();
-  return (
-    <div className="flex flex-wrap gap-6 p-6 ml-12">
-      {/* Coupon Card */}
-      <div className="flex flex-col items-center bg-blue-500 text-white p-6 rounded-lg shadow-lg w-[19rem]">
-        <div className="flex items-center mb-4">
-          <FaPlaneDeparture className="text-3xl mr-2" />
-          <h3 className="text-2xl font-bold">my Dream Place</h3>
-        </div>
-        <p className="text-5xl font-extrabold mb-2">20% OFF</p>
-        <p className="mb-1 text-lg">Use Promo Code:</p>
-        <p className="bg-yellow-300 text-blue-800 font-extrabold text-3xl py-1 px-4 rounded-lg shadow-md">
-          Orlando
-        </p>
-        <img src={frame} alt="Traveler Icon" className="w-[24] h-24 mt-4" />
-      </div>
-
-      {/* Related Products */}
-      {relatedProducts.map((related, index) => (
-        <div
-          className="bg-white shadow-md rounded-lg overflow-hidden w-[27rem]"
-          key={related._id || index} // Use _id for uniqueness if available
-        >
-          <img
-            src={related.images[0]} // Replace with actual image from `related` object
-            alt={`Image of ${related.title}`}
-            className="w-full h-40 object-cover"
-          />
-          <div className="p-4">
-            <h3 className="text-lg font-semibold mb-2">{related.title}</h3>
-            <div className="flex items-center text-gray-500 text-sm mb-2">
-              <FaRulerCombined className="mr-2" /> 300 sq ft{" "}
-              {/* Update dynamically if needed */}
-            </div>
-            <div className="flex items-center text-gray-500 text-sm mb-2">
-              <FaUser className="mr-2" /> Sleeps 3 {/* Update dynamically */}
-            </div>
-            <div className="flex items-center text-gray-500 text-sm mb-2">
-              <FaBed className="mr-2" /> 1 double bed and 1 twin bed{" "}
-              {/* Update dynamically */}
-            </div>
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded-md w-full mt-4"
-              onClick={() => navigate(`/product/${related.slug}`)}
-            >
-              Try it
-            </button>
-          </div>
-        </div>
+const RelatedProduct = ({ relatedProducts = [] }) => (
+  relatedProducts.length ? (
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {relatedProducts.map((stay) => (
+        <Link to={`/product/${stay.slug}`} key={stay._id || stay.slug} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none">
+          <div className="h-52 overflow-hidden bg-slate-100">{stay.images?.[0] ? <img src={stay.images[0]} alt={stay.title || "Recommended stay"} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-sm text-slate-500">Photo coming soon</div>}</div>
+          <div className="p-5"><h3 className="font-bold text-slate-900">{stay.title}</h3><p className="mt-1 text-sm text-slate-500">{stay.hotelLocation || "Explore this destination"}</p><div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4"><span className="font-bold text-slate-900">${Number(stay.price || 0).toLocaleString("en-US")} <span className="text-xs font-normal text-slate-500">/ night</span></span><span className="font-semibold text-blue-700">View stay →</span></div></div>
+        </Link>
       ))}
     </div>
-  );
-};
+  ) : <p className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-600">No similar stays to show yet. <Link to="/search" className="font-semibold text-blue-700">Explore all stays</Link></p>
+);
 
 export default RelatedProduct;

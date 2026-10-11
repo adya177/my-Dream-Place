@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FaUser } from "react-icons/fa";
 import { IoIosHeartEmpty } from "react-icons/io";
-import logo from "../assets/logo (2).png";
+import BrandLogo from "./BrandLogo";
 import { useAuth } from "../context/UserContext";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -32,7 +32,7 @@ const Navbar = () => {
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur">
       <nav aria-label="Main navigation" className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 py-3 sm:px-8 lg:px-10">
         <Link to="/" aria-label="My Dream Place home" className="shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
-          <img src={logo} alt="My Dream Place" className="h-10 w-auto" />
+          <BrandLogo />
         </Link>
         <div className="order-3 flex w-full items-center gap-1 overflow-x-auto pb-1 md:order-2 md:w-auto md:pb-0">
           {navItems.map(([label, to]) => <NavLink key={to} to={to} end={to === "/"} className={navLinkClass}>{label}</NavLink>)}

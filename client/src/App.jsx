@@ -109,6 +109,8 @@ const ScrollToTop = () => {
 
 
 function App() {
+  const { pathname } = useLocation();
+  const showTravelPromo = ["/", "/discover", "/activities"].includes(pathname);
   return (
     <>
       <ScrollToTop />
@@ -142,7 +144,7 @@ function App() {
           <Route path="/admin/post/:slug" element={<UpdatePost />} />
         </Route>
       </Routes>
-      <Advertisement />
+      {showTravelPromo && <Advertisement />}
       <Footer />
     </>
   );

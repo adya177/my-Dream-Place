@@ -1,37 +1,19 @@
-import React from "react";
 import { FaUser, FaPlus, FaList, FaFolder, FaMap } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 const navbarMenu = [
-  { id: 1, name: "Admin Details", link: "/admin/details", icon: <FaUser /> },
-  { id: 2, name: "Create Post", link: "/admin/create-post", icon: <FaPlus /> },
-  { id: 3, name: "All Posts", link: "/admin/all-post", icon: <FaList /> },
-  {
-    id: 4,
-    name: "Create Category",
-    link: "/admin/create-category",
-    icon: <FaFolder />,
-  },
-  { id: 5, name: "All Orders", link: "/admin/all-booking", icon: <FaMap /> },
+  { name: "Admin details", link: "/admin/details", icon: <FaUser /> },
+  { name: "Create stay", link: "/admin/create-post", icon: <FaPlus /> },
+  { name: "All stays", link: "/admin/all-post", icon: <FaList /> },
+  { name: "Categories", link: "/admin/create-category", icon: <FaFolder /> },
+  { name: "Bookings", link: "/admin/all-booking", icon: <FaMap /> },
 ];
 
-const Navbar = () => {
-  return (
-    <div className="bg-gray-800 text-white w-[15rem] h-full min-h-[28rem] border-r border-gray-700">
-      <nav className="flex flex-col p-5 space-y-4">
-        {navbarMenu.map((item) => (
-          <Link
-            key={item.id}
-            to={item.link}
-            className="flex items-center p-3 rounded-lg hover:bg-gray-700 transition-colors duration-300"
-          >
-            <span className="mr-3 text-xl">{item.icon}</span>
-            <span className="text-md">{item.name}</span>
-          </Link>
-        ))}
-      </nav>
-    </div>
-  );
-};
+const Navbar = () => (
+  <nav aria-label="Admin navigation" className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white p-3 lg:w-64 lg:shrink-0 lg:flex-col lg:border-b-0 lg:border-r lg:p-5">
+    <p className="hidden px-3 pb-3 text-xs font-bold uppercase tracking-[.18em] text-slate-400 lg:block">Workspace</p>
+    {navbarMenu.map((item) => <NavLink key={item.link} to={item.link} className={({ isActive }) => `flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}><span className="text-base">{item.icon}</span>{item.name}</NavLink>)}
+  </nav>
+);
 
 export default Navbar;

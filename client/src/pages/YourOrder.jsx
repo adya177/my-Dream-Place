@@ -32,53 +32,27 @@ const YourOrder = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row mt-6">
-      <div className="lg:w-1/4 w-full ml-12">
+    <main className="min-h-[60vh] bg-slate-50 px-4 py-8 sm:px-8 lg:py-12">
+      <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:flex">
         <Navbar />
-      </div>
-      <div className="lg:w-3/4 w-full p-4 lg:p-8 bg-gray-50">
-        {book && Array.isArray(book) && book.length > 0 ? (
-          book.map((order, index) => (
-            <div
-              key={index}
-              className="bg-white shadow-lg rounded-lg p-6 max-w-screen-md mx-auto mb-6 transition-transform transform hover:scale-105 hover:shadow-xl"
-            >
-              <h1 className="text-2xl lg:text-3xl font-semibold text-gray-800 mb-6 text-center">
-                Order: {order.title}
-              </h1>
-              <div className="mb-4">
-                <p className="text-gray-600 text-lg">
-                  <span className="font-semibold">Customer:</span>{" "}
-                  {order.customerName}
-                </p>
-                <p className="text-gray-600 text-lg">
-                  <span className="font-semibold">Price:</span> ${order.amount}
-                </p>
-                <p className="mt-2 text-sm text-gray-600">
-                  <span className="font-semibold">Payment:</span>{" "}
-                  {order.paymentMethod === "property"
-                    ? "Pay at the property · due on arrival"
-                    : order.paymentStatus === "unpaid"
-                      ? "Payment pending"
-                      : "Paid online"}
-                </p>
-              </div>
-              <div className="flex justify-center lg:justify-between items-center">
-                <button
-                  className="bg-blue-600 text-white py-2 px-6 rounded-lg flex items-center gap-2 shadow hover:bg-blue-700 transition"
-                  onClick={() => handleCheckout(order._id, order.postId)}
-                >
-                  <FaShoppingCart />
-                  <span>Check out and release stay</span>
-                </button>
-              </div>
+        <section className="min-w-0 flex-1 p-5 sm:p-8 lg:p-10">
+          <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Your account</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Your bookings</h1>
+          <p className="mt-2 text-slate-600">See your reservations and payment details.</p>
+          {book && Array.isArray(book) && book.length > 0 ? (
+            <div className="mt-7 grid gap-4 xl:grid-cols-2">
+              {book.map((order, index) => (
+                <article key={order._id || index} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Reservation</p><h2 className="mt-2 text-lg font-bold text-slate-900">{order.title}</h2></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${order.paymentStatus === "unpaid" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{order.paymentStatus === "unpaid" ? "Payment due" : "Paid"}</span></div>
+                  <div className="mt-5 space-y-2 border-t border-slate-100 pt-4 text-sm text-slate-600"><p><span className="font-semibold text-slate-800">Guest:</span> {order.customerName || "Account holder"}</p><p><span className="font-semibold text-slate-800">Total:</span> ${Number(order.amount || 0).toLocaleString("en-US")}</p><p><span className="font-semibold text-slate-800">Payment:</span> {order.paymentMethod === "property" ? "Pay at the property · due on arrival" : order.paymentStatus === "unpaid" ? "Payment pending" : "Paid online"}</p></div>
+                  <button type="button" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" onClick={() => handleCheckout(order._id, order.postId)}><FaShoppingCart /> Check out and release stay</button>
+                </article>
+              ))}
             </div>
-          ))
-        ) : (
-          <p className="text-gray-600 text-lg text-center">No orders found</p>
-        )}
+          ) : <div className="mt-7 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center"><p className="text-lg font-semibold text-slate-900">No bookings yet</p><p className="mt-2 text-sm text-slate-600">Your confirmed stays will show up here.</p><button type="button" onClick={() => navigate("/search")} className="mt-5 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700">Explore stays</button></div>}
+        </section>
       </div>
-    </div>
+    </main>
   );
 };
 

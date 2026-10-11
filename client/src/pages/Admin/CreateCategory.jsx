@@ -72,47 +72,47 @@ const CreateCategory = () => {
   };
 
   return (
-    <div className="flex ml-16 mt-4">
+    <main className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 lg:flex-row lg:px-8">
       <Navbar />
-      <div className="flex flex-col items-center p-4 w-full max-w-3xl">
-        <h1 className="text-2xl font-bold mb-4">Create Category</h1>
+      <section className="min-w-0 flex-1 p-2 sm:p-5">
+        <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Workspace</p><h1 className="mb-7 mt-2 text-3xl font-bold tracking-tight text-slate-900">Manage categories</h1>
         <form
           onSubmit={handleSubmit}
-          className="flex items-center gap-2 mb-4 w-full max-w-md"
+          className="mb-7 flex w-full max-w-xl flex-col gap-3 sm:flex-row"
         >
           <input
             type="text"
             placeholder="Category Name"
             value={categoryName}
             onChange={(e) => setCategoryName(e.target.value)}
-            className="border px-2 py-1 w-full max-w-sm bg-white"
+            className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 focus:border-blue-500"
           />
           <button
             type="submit"
-            className="px-4 py-1 bg-blue-500 text-white ml-2"
+            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
           >
             {editId ? "Update" : "Submit"}
           </button>
         </form>
-        <div className="w-full max-w-md">
-          <h2 className="text-xl font-semibold mb-2">Categories</h2>
-          <ul className="border border-gray-300 p-4">
+        <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-3 text-lg font-bold text-slate-900">Categories</h2>
+          <ul className="divide-y divide-slate-100">
             {categories.map((category) => (
               <li
                 key={category._id}
-                className="flex justify-between items-center p-1 border-b last:border-b-0"
+                className="flex items-center justify-between gap-4 py-3"
               >
                 <span className="flex-grow">{category.name}</span>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(category._id, category.name)}
-                    className="px-2 py-1 bg-yellow-500 text-white"
+                    className="rounded-lg bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-200"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(category._id)}
-                    className="px-2 py-1 bg-red-500 text-white"
+                    className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
                   >
                     Delete
                   </button>
@@ -121,10 +121,10 @@ const CreateCategory = () => {
             ))}
           </ul>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 
 export default CreateCategory;
-  
+
