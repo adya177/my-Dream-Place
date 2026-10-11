@@ -27,6 +27,7 @@ import DreamVacation from "./components/DreamVacation";
 import NextTrip from "./components/NextTrip";
 import Hotels from "./components/Hotels";
 import DestinationGuide from "./pages/DestinationGuide.jsx/DestinationGuide.jsx";
+import contourPattern from "./assets/contour-pattern.svg";
 
 
 const PageIntro = ({ eyebrow, title, children }) => (
@@ -42,10 +43,13 @@ const PageIntro = ({ eyebrow, title, children }) => (
 
 const DiscoverPage = () => (
   <main>
-    <PageIntro eyebrow="Find your next escape" title="A world of places worth discovering">
-      Browse destination inspiration and find a stay that fits the way you want to travel.
-      <div className="mt-7"><Link to="/search" className="inline-flex rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white shadow-sm hover:bg-blue-700">Explore stays <span className="ml-2">→</span></Link></div>
-    </PageIntro>
+    <section className="relative isolate overflow-hidden border-b border-slate-200 px-5 py-14 sm:px-8 sm:py-20 lg:px-10" style={{ backgroundImage: `linear-gradient(110deg, rgba(244,249,248,.85), rgba(248,250,252,.78)), url(${contourPattern})`, backgroundSize: "cover, 420px 360px", backgroundPosition: "center, right top", backgroundRepeat: "no-repeat, repeat" }}>
+      <div className="pointer-events-none absolute -right-20 -top-28 -z-10 h-80 w-80 rounded-full border border-teal-900/10" /><div className="pointer-events-none absolute -right-8 -top-16 -z-10 h-56 w-56 rounded-full border border-teal-900/10" />
+      <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_390px]">
+        <div className="max-w-3xl"><p className="inline-flex items-center gap-2 rounded-full border border-teal-900/10 bg-white/75 px-4 py-2 text-xs font-bold uppercase tracking-[.16em] text-teal-800 shadow-sm"><span className="h-2 w-2 rounded-full bg-teal-600" />The places behind the plans</p><h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">Find a place that <span className="text-teal-800">feels like somewhere.</span></h1><p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">From slow island mornings to streets that stay lively after dark, discover a destination worth making time for.</p><div className="mt-8 flex flex-wrap items-center gap-3"><Link to="/search" className="inline-flex items-center rounded-xl bg-slate-900 px-6 py-3.5 font-bold text-white shadow-md transition hover:bg-teal-900">Find your stay <span className="ml-3" aria-hidden="true">→</span></Link><span className="text-sm font-medium text-slate-500">Thoughtful guides. Places to stay. Your kind of trip.</span></div></div>
+        <div className="relative mx-auto w-full max-w-sm rotate-1 rounded-[1.8rem] border border-white/80 bg-white p-2 shadow-[0_24px_70px_-28px_rgba(15,23,42,.35)] lg:mr-8"><img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=900&q=85" alt="A quiet lantern-lit lane in Kyoto" className="h-64 w-full rounded-[1.35rem] object-cover sm:h-72" /><div className="absolute bottom-5 left-5 rounded-2xl border border-white/70 bg-white/95 px-4 py-3 shadow-lg backdrop-blur"><p className="text-[10px] font-bold uppercase tracking-[.17em] text-teal-700">A slower kind of escape</p><p className="mt-1 text-lg font-extrabold text-slate-900">Kyoto, Japan</p></div><span className="absolute right-5 top-5 rounded-full bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">Editor's pick</span></div>
+      </div>
+    </section>
     <DreamVacation />
     <Hotels />
   </main>
