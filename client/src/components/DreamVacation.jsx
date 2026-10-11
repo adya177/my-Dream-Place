@@ -44,7 +44,7 @@ const DreamVacation = () => {
   };
 
   return (
-    <div className="flex flex-col mt-14 px-4 mx-auto max-w-screen-xl sm:ml-[175px]">
+    <div id="discover" className="flex flex-col mt-14 px-4 mx-auto max-w-screen-xl sm:ml-[175px] scroll-mt-6">
       {/* Title */}
       <h1 className="text-2xl sm:text-3xl font-semibold mb-2 text-center sm:text-left sm:ml-0">
         Enjoy your dream vacation
