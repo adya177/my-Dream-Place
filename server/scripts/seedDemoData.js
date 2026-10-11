@@ -1,11 +1,21 @@
 import "dotenv/config";
 import slugify from "slugify";
 import mongoose from "mongoose";
+import { pathToFileURL } from "node:url";
 import Category from "../src/models/Category.js";
 import Post from "../src/models/Post.js";
 import { connectToDb } from "../src/config/db.js";
 
-const categoryNames = ["Australia", "Japan", "New Zealand", "Greece"];
+const categoryNames = [
+  "Australia",
+  "Japan",
+  "New Zealand",
+  "Greece",
+  "Bali",
+  "Paris",
+  "Maldives",
+  "Amalfi Coast",
+];
 
 const demoListings = [
   {
@@ -104,11 +114,57 @@ const demoListings = [
     description:
       "Sample Crete holiday home listing created for previewing the app. This is fictional demo content.",
   },
+  {
+    title: "Ubud Bamboo Garden Stay (Demo)",
+    hotelLocation: "Ubud, Bali, Indonesia",
+    category: "Bali",
+    price: 165,
+    guest: 3,
+    images: ["/demo/villa.png", "/demo/island.png", "/demo/lake.png"],
+    nearArea: ["Ubud Art Market", "Campuhan Ridge Walk", "Tegallalang"],
+    facilities: ["Wi-Fi", "Pool", "Air conditioning", "Garden"],
+    description:
+      "Fictional demo listing for previewing Bali stays and destination search. This property is not a real accommodation offer.",
+  },
+  {
+    title: "Paris Left Bank City Apartment (Demo)",
+    hotelLocation: "Paris, France",
+    category: "Paris",
+    price: 285,
+    guest: 2,
+    images: ["/demo/city.png", "/demo/villa.png", "/demo/coast.png"],
+    nearArea: ["Latin Quarter", "Luxembourg Gardens", "Saint-Germain-des-Prés"],
+    facilities: ["Wi-Fi", "Air conditioning", "Kitchen", "City view"],
+    description:
+      "Fictional demo listing for previewing Paris stays and destination search. This property is not a real accommodation offer.",
+  },
+  {
+    title: "Maldives Lagoon Villa (Demo)",
+    hotelLocation: "North Malé Atoll, Maldives",
+    category: "Maldives",
+    price: 490,
+    guest: 4,
+    images: ["/demo/island.png", "/demo/coast.png", "/demo/villa.png"],
+    nearArea: ["North Malé Atoll", "Lagoon", "House reef"],
+    facilities: ["Wi-Fi", "Pool", "Air conditioning", "Sea view"],
+    description:
+      "Fictional demo listing for previewing Maldives stays and destination search. This property is not a real accommodation offer.",
+  },
+  {
+    title: "Amalfi Lemon Grove Retreat (Demo)",
+    hotelLocation: "Ravello, Amalfi Coast, Italy",
+    category: "Amalfi Coast",
+    price: 375,
+    guest: 3,
+    images: ["/demo/coast.png", "/demo/villa.png", "/demo/island.png"],
+    nearArea: ["Villa Rufolo", "Ravello Gardens", "Amalfi town"],
+    facilities: ["Wi-Fi", "Air conditioning", "Terrace", "Sea view"],
+    description:
+      "Fictional demo listing for previewing Amalfi Coast stays and destination search. This property is not a real accommodation offer.",
+  },
 ];
 
-const run = async () => {
-  await connectToDb();
-
+export const seedDemoData = async () => {
   const categories = new Map();
   for (const name of categoryNames) {
     const slug = slugify(name, { lower: true });
@@ -145,11 +201,17 @@ const run = async () => {
   );
 };
 
-run()
-  .catch((error) => {
-    console.error("Could not seed demo data:", error.message);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await mongoose.disconnect();
-  });
+const isMainModule =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMainModule) {
+  connectToDb()
+    .then(seedDemoData)
+    .catch((error) => {
+      console.error("Could not seed demo data:", error.message);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await mongoose.disconnect();
+    });
+}
