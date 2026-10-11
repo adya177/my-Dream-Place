@@ -24,18 +24,18 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="flex items-center justify-between p-4">
+    <nav className="grid grid-cols-[1fr_auto] items-center gap-y-3 p-4 md:flex md:justify-between">
       <Link to="/" aria-label="My Dream Place home" className="flex items-center space-x-2">
-        <img src={logo} alt="My Dream Place" className="ml-[7rem]" />
+        <img src={logo} alt="My Dream Place" className="ml-0 md:ml-[7rem]" />
       </Link>
-      <div className="hidden space-x-6 md:flex">
+      <div className="col-span-2 row-start-2 flex justify-center gap-x-4 text-xs sm:text-sm md:col-span-1 md:row-auto md:gap-x-6 md:text-base">
         <Link to="/" className="text-gray-600 hover:text-gray-900">Home</Link>
         <Link to="/discover" className="text-gray-600 hover:text-gray-900">Discover</Link>
         <Link to="/activities" className="text-gray-600 hover:text-gray-900">Activities</Link>
         <Link to="/about" className="text-gray-600 hover:text-gray-900">About</Link>
         <Link to="/contact" className="text-gray-600 hover:text-gray-900">Contact</Link>
       </div>
-      <div className="relative mr-[9rem] flex items-center space-x-4">
+      <div className="relative col-start-2 row-start-1 mr-0 flex items-center space-x-4 md:mr-[9rem] md:row-auto">
         <button type="button" aria-label="Open saved trips" onClick={() => navigate("/cart")} className="cursor-pointer">
           <IoIosHeartEmpty size={20} />
         </button>
