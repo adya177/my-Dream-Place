@@ -1,298 +1,139 @@
-import React, { useState, useEffect } from "react";
-import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { toast } from "react-toastify";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import axios from "axios";
-import { useBook } from "../context/Booking";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useAuth } from "../context/UserContext";
+import { useBook } from "../context/Booking";
+
+const currency = (value) => Number(value || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
+const inputClass = "mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
 const Payment = () => {
   const stripe = useStripe();
   const elements = useElements();
   const location = useLocation();
   const navigate = useNavigate();
-  const [book, setBook] = useBook();
-  // console.log(book);
-
   const [auth] = useAuth();
-  // console.log(auth);
-  console.log("This is token", auth?.token);
-  console.log("This is user Id", auth?.user?.id);
-
+  const [book, setBook] = useBook();
   const [loading, setLoading] = useState(false);
-  const [amount, setAmount] = useState(0);
-  const [title, setTitle] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [customerAddress, setCustomerAddress] = useState({
-    line1: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "",
-  });
+  const [customerName, setCustomerName] = useState(auth?.user?.name || "");
+  const [address, setAddress] = useState({ line1: "", city: "", state: "", postalCode: "", country: "IN" });
 
-  // Fetch product title and price dynamically from location state
-  useEffect(() => {
-    if (location?.state) {
-      setAmount(location.state.price || 0);
-      setTitle(location.state.product || "Product");
-      if (location.state.postId) {
-        console.log("2nd Post ID:", location.state.postId); // Debugging purpose
-      } else {
-        console.error("Post ID is missing in location.state");
-      }
+  const items = useMemo(() => {
+    const state = location.state;
+    if (Array.isArray(state?.products)) return state.products.map((item) => ({ ...item, postId: item.postId || item._id }));
+    if (state?.postId) return [{ title: state.product || "Your stay", price: state.price, postId: state.postId }];
+    return [];
+  }, [location.state]);
+  const total = items.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  const addressField = (key) => (event) => setAddress((current) => ({ ...current, [key]: event.target.value }));
+
+  const handlePayment = async (event) => {
+    event.preventDefault();
+    if (!items.length || items.some((item) => !item.postId) || total <= 0) {
+      toast.error("Your checkout details are missing. Please select a stay again.");
+      navigate("/search");
+      return;
     }
-  }, [location]);
-
-  const handleCountryCodeConversion = (country) => {
-    const countryMapping = {
-      India: "IN",
-    };
-    return countryMapping[country] || country;
-  };
-
-  const handlePayment = async (e) => {
-    e.preventDefault();
-
+    if (!auth?.token) {
+      toast.error("Sign in before completing your booking.");
+      navigate("/login", { state: { from: "/cart" } });
+      return;
+    }
     if (!stripe || !elements) {
-      toast.error("Stripe has not loaded yet. Please try again.");
+      toast.error("Secure checkout is still loading. Please try again.");
       return;
     }
-
-    if (
-      !customerName ||
-      !customerAddress.line1 ||
-      !customerAddress.city ||
-      !customerAddress.country
-    ) {
-      toast.error("Please fill out all the required fields.");
-      return;
-    }
-
-    const convertedCountry = handleCountryCodeConversion(
-      customerAddress.country
-    );
-
     setLoading(true);
-
     try {
-      // Create a payment intent on the server
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/api/booking/create-payment-intent`,
-        {
-          amount: amount * 100, // Amount in cents
-          currency: "usd",
-          description: `Payment for ${title}`,
-          customerName,
-          customerAddress: { ...customerAddress, country: convertedCountry },
-        }
-      );
+      const response = await axios.post(import.meta.env.VITE_BASE_URL + "/api/booking/create-payment-intent", {
+        amount: Math.round(total * 100), currency: "usd", description: "My Dream Place booking (" + items.length + " stay)", customerName,
+        customerAddress: { ...address, country: address.country.trim().toUpperCase() },
+      });
+      const data = response.data;
+      if (!data?.clientSecret) throw new Error(data?.message || "Could not start secure checkout.");
+      const result = await stripe.confirmCardPayment(data.clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
+          billing_details: { name: customerName, address: { line1: address.line1, city: address.city, state: address.state, postal_code: address.postalCode, country: address.country.trim().toUpperCase() } },
+        },
+      });
+      if (result.error) throw new Error(result.error.message || "Card payment failed.");
+      if (result.paymentIntent?.status !== "succeeded") throw new Error("Payment could not be confirmed.");
 
-      const clientSecret = data.clientSecret;
-
-      // Confirm the payment on the client
-      const { paymentIntent, error } = await stripe.confirmCardPayment(
-        clientSecret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement),
-            billing_details: {
-              name: customerName,
-              address: {
-                line1: customerAddress.line1,
-                city: customerAddress.city,
-                state: customerAddress.state,
-                postal_code: customerAddress.postalCode,
-                country: convertedCountry,
-              },
-            },
-          },
-        }
-      );
-
-      if (error) {
-        toast.error(`Payment failed: ${error.message}`);
-        setLoading(false);
-        return;
-      }
-
-      if (paymentIntent.status === "succeeded") {
-        // After payment success, create the booking
-        const bookingData = {
-          token: auth?.token, // Replace with actual userId
-          postId: location.state.postId,
-          bookingDate: new Date(), // Set the booking date
-          transactionId: paymentIntent.id,
-        };
-
-        console.log("Booking Data Sent:", bookingData);
-
-        await axios.post(
-          `${import.meta.env.VITE_BASE_URL}/api/booking/create-booking`,
-          bookingData
-        );
-        const updatedBooking = [
-          ...book,
-          { title, amount, customerName, postId: location.state?.postId },
-        ];
-        setBook(updatedBooking);
-        localStorage.setItem("booking", JSON.stringify(updatedBooking));
-
-        // Update product availability
-        await axios.patch(
-          `${import.meta.env.VITE_BASE_URL}/api/booking/update-availability`,
-          {
-            postId: location.state.postId,
-            isAvailable: false,
-          }
-        );
-
-        // Redirect to orders
-        toast.success("Payment and booking successful!");
-        navigate("/user/your-order");
-      }
+      await Promise.all(items.map(async (item) => {
+        await axios.post(import.meta.env.VITE_BASE_URL + "/api/booking/create-booking", {
+          token: auth.token, postId: item.postId, bookingDate: new Date(), transactionId: result.paymentIntent.id,
+        });
+        await axios.patch(import.meta.env.VITE_BASE_URL + "/api/booking/update-availability", { postId: item.postId, isAvailable: false });
+      }));
+      const savedBookings = [...book, ...items.map((item) => ({ title: item.title, amount: item.price, customerName, postId: item.postId }))];
+      setBook(savedBookings);
+      localStorage.setItem("booking", JSON.stringify(savedBookings));
+      toast.success("Payment and booking successful.");
+      navigate("/user/your-order");
     } catch (error) {
-      console.error("Error processing payment:", error.message);
-      toast.error("Payment failed. Please try again.");
+      const message = error.response?.data?.message || error.message || "Please check your details and try again.";
+      toast.error("Checkout could not be completed: " + message);
     } finally {
       setLoading(false);
     }
   };
 
+  if (!items.length) return (
+    <main className="mx-auto my-16 max-w-2xl px-6"><div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-600">⌂</div>
+      <h1 className="mt-5 text-2xl font-bold text-slate-900">Your checkout is waiting for a stay</h1>
+      <p className="mt-3 text-slate-600">Choose a place to stay first, then come back here to finish your booking securely.</p>
+      <Link to="/search" className="mt-7 inline-flex rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700">Browse stays</Link>
+    </div></main>
+  );
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold mb-4">Payment</h1>
+    <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 lg:py-14">
+      <div className="mx-auto max-w-6xl">
+        <Link to="/cart" className="text-sm font-medium text-blue-700 hover:text-blue-900">← Back to your bag</Link>
+        <div className="mt-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div><p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-600">Secure checkout</p><h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Complete your booking</h1></div>
+          <p className="text-sm text-slate-500">Your payment details are encrypted by Stripe.</p>
+        </div>
 
-      {/* Display product title and price */}
-      <div className="bg-gray-100 p-4 rounded-md mb-4 shadow-md">
-        <h2 className="text-xl font-medium text-gray-800">{title}</h2>
-        <p className="text-lg text-gray-600">
-          Price:{" "}
-          <span className="text-green-600 font-semibold">
-            {amount.toLocaleString("en-US", {
-              style: "currency",
-              currency: "USD",
-            })}
-          </span>
-        </p>
+        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <form onSubmit={handlePayment} className="space-y-6">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <div className="mb-6"><h2 className="text-xl font-semibold text-slate-900">Guest and billing details</h2><p className="mt-1 text-sm text-slate-500">Enter the details associated with your card.</p></div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <label className="text-sm font-medium text-slate-700 sm:col-span-2">Full name<input autoComplete="name" value={customerName} onChange={(event) => setCustomerName(event.target.value)} className={inputClass} placeholder="Name on card" required /></label>
+                <label className="text-sm font-medium text-slate-700 sm:col-span-2">Street address<input autoComplete="street-address" value={address.line1} onChange={addressField("line1")} className={inputClass} placeholder="House number and street" required /></label>
+                <label className="text-sm font-medium text-slate-700">City<input autoComplete="address-level2" value={address.city} onChange={addressField("city")} className={inputClass} placeholder="City" required /></label>
+                <label className="text-sm font-medium text-slate-700">State or region<input autoComplete="address-level1" value={address.state} onChange={addressField("state")} className={inputClass} placeholder="State or region" /></label>
+                <label className="text-sm font-medium text-slate-700">Postal code<input autoComplete="postal-code" value={address.postalCode} onChange={addressField("postalCode")} className={inputClass} placeholder="Postal code" /></label>
+                <label className="text-sm font-medium text-slate-700">Country code<input autoComplete="country" value={address.country} onChange={addressField("country")} className={inputClass} placeholder="IN" maxLength={2} required /><span className="mt-1 block text-xs font-normal text-slate-500">Use the two-letter code, for example IN or US.</span></label>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <h2 className="text-xl font-semibold text-slate-900">Payment method</h2><p className="mt-1 text-sm text-slate-500">Pay securely by card.</p>
+              <div className="mt-5 rounded-xl border border-slate-300 px-4 py-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100"><CardElement options={{ style: { base: { color: "#0f172a", fontFamily: "Inter, system-ui, sans-serif", fontSize: "16px", "::placeholder": { color: "#94a3b8" } }, invalid: { color: "#dc2626" } } }} /></div>
+              <button type="submit" disabled={!stripe || loading} className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400">
+                {loading ? "Processing your booking…" : "Pay " + currency(total)}
+              </button>
+              <p className="mt-3 text-center text-xs text-slate-500">By continuing, you confirm your billing details are correct.</p>
+            </section>
+          </form>
+
+          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
+            <h2 className="text-xl font-semibold text-slate-900">Booking summary</h2>
+            <div className="mt-5 divide-y divide-slate-100">
+              {items.map((item, index) => <div key={item.postId || index} className="flex justify-between gap-4 py-4 first:pt-0"><span className="font-medium text-slate-700">{item.title || "Your stay"}</span><span className="shrink-0 font-semibold text-slate-900">{currency(item.price)}</span></div>)}
+            </div>
+            <div className="mt-2 flex justify-between border-t border-slate-200 pt-5 text-lg font-bold text-slate-900"><span>Total</span><span>{currency(total)}</span></div>
+            <p className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-800">Your reservation will be confirmed after the secure card payment completes.</p>
+          </aside>
+        </div>
       </div>
-
-      <form onSubmit={handlePayment} className="space-y-4">
-        <div className="flex flex-col">
-          <label htmlFor="name" className="text-gray-700 mb-2">
-            Full Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            className="p-3 border rounded-md"
-            placeholder={auth.user?.name}
-            required
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="address" className="text-gray-700 mb-2">
-            Address Line 1
-          </label>
-          <input
-            type="text"
-            id="address"
-            value={customerAddress.line1}
-            onChange={(e) =>
-              setCustomerAddress({ ...customerAddress, line1: e.target.value })
-            }
-            className="p-3 border rounded-md"
-            placeholder="Enter address"
-            required
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="city" className="text-gray-700 mb-2">
-            City
-          </label>
-          <input
-            type="text"
-            id="city"
-            value={customerAddress.city}
-            onChange={(e) =>
-              setCustomerAddress({ ...customerAddress, city: e.target.value })
-            }
-            className="p-3 border rounded-md"
-            placeholder="Enter city"
-            required
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="state" className="text-gray-700 mb-2">
-            State
-          </label>
-          <input
-            type="text"
-            id="state"
-            value={customerAddress.state}
-            onChange={(e) =>
-              setCustomerAddress({ ...customerAddress, state: e.target.value })
-            }
-            className="p-3 border rounded-md"
-            placeholder="Enter state"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="postalCode" className="text-gray-700 mb-2">
-            Postal Code
-          </label>
-          <input
-            type="text"
-            id="postalCode"
-            value={customerAddress.postalCode}
-            onChange={(e) =>
-              setCustomerAddress({
-                ...customerAddress,
-                postalCode: e.target.value,
-              })
-            }
-            className="p-3 border rounded-md"
-            placeholder="Enter postal code"
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="country" className="text-gray-700 mb-2">
-            Country
-          </label>
-          <input
-            type="text"
-            id="country"
-            value={customerAddress.country}
-            onChange={(e) =>
-              setCustomerAddress({
-                ...customerAddress,
-                country: e.target.value,
-              })
-            }
-            className="p-3 border rounded-md"
-            placeholder="Enter country (e.g., India)"
-            required
-          />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="card" className="text-gray-700 mb-2">
-            Card Details
-          </label>
-          <CardElement id="card" className="p-3 border rounded-md" />
-        </div>
-        <button
-          type="submit"
-          disabled={!stripe || loading}
-          className={`px-6 py-3 text-white rounded-lg ${
-            loading ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
-          }`}
-        >
-          {loading ? "Processing..." : "Pay Now"}
-        </button>
-      </form>
-    </div>
+    </main>
   );
 };
 
