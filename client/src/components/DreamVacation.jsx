@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
+
 const destinations = [
   { name: "Kyoto, Japan", tag: "Temples, gardens and quiet streets", query: "Kyoto", image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=900&q=85", alt: "Traditional street in Kyoto framed by historic buildings" },
   { name: "Amalfi Coast, Italy", tag: "Cliffside villages by the sea", query: "Amalfi", image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=900&q=85", alt: "Colorful coastal village on the Italian Riviera" },
@@ -10,6 +11,7 @@ const destinations = [
   { name: "Paris, France", tag: "Neighbourhood cafés and city walks", query: "Paris", image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=900&q=85", alt: "Paris skyline with the Eiffel Tower at golden hour" },
 ];
 
+
 const DreamVacation = () => (
   <section id="discover" className="mx-auto mt-14 max-w-7xl scroll-mt-6 px-5 py-8 sm:px-6 lg:px-8">
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -17,13 +19,14 @@ const DreamVacation = () => (
       <Link to="/search" className="font-semibold text-blue-700 hover:text-blue-900">Browse all stays <span aria-hidden="true">→</span></Link>
     </div>
     <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {destinations.map((destination) => <Link key={destination.name} to={"/search?keyword=" + encodeURIComponent(destination.query)} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+      {destinations.map((destination) => <Link key={destination.name} to={"/destination/" + destination.query.toLowerCase().replace(/ /g, "-")} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
         <div className="relative h-56 overflow-hidden"><img src={destination.image} alt={destination.alt} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /><span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-700">Travel inspiration</span></div>
-        <div className="p-5"><h3 className="text-xl font-semibold text-slate-900">{destination.name}</h3><p className="mt-1 text-sm text-slate-600">{destination.tag}</p><span className="mt-4 inline-flex font-semibold text-blue-700">Search this destination <span className="ml-2" aria-hidden="true">→</span></span></div>
+        <div className="p-5"><h3 className="text-xl font-semibold text-slate-900">{destination.name}</h3><p className="mt-1 text-sm text-slate-600">{destination.tag}</p><span className="mt-4 inline-flex font-semibold text-blue-700">Explore destination guide <span className="ml-2" aria-hidden="true">→</span></span></div>
       </Link>)}
     </div>
     <p className="mt-4 text-xs text-slate-500">Destination photos from Unsplash. Listings and availability are shown in search results.</p>
   </section>
 );
+
 
 export default DreamVacation;
