@@ -26,7 +26,7 @@ const NextTrip = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto mt-14 px-4">
+    <div id="activities" className="max-w-7xl mx-auto mt-14 px-4 scroll-mt-6">
       <h1 className="text-3xl font-semibold mb-6 ml-[10px]">
         Get inspiration for your next trip
       </h1>
