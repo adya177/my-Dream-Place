@@ -25,6 +25,8 @@ import SelectedCategory from "./pages/SelectedCategory";
 import DreamVacation from "./components/DreamVacation";
 import NextTrip from "./components/NextTrip";
 import Hotels from "./components/Hotels";
+import DestinationGuide from "./pages/DestinationGuide";
+
 
 const PageIntro = ({ eyebrow, title, children }) => (
   <section className="bg-gradient-to-br from-blue-50 via-white to-sky-100 px-6 py-16 sm:py-20">
@@ -36,6 +38,7 @@ const PageIntro = ({ eyebrow, title, children }) => (
   </section>
 );
 
+
 const DiscoverPage = () => (
   <main>
     <PageIntro eyebrow="Find your next escape" title="A world of places worth discovering">
@@ -46,6 +49,7 @@ const DiscoverPage = () => (
     <Hotels />
   </main>
 );
+
 
 const ActivitiesPage = () => (
   <main>
@@ -62,6 +66,7 @@ const ActivitiesPage = () => (
   </main>
 );
 
+
 const AboutPage = () => (
   <main>
     <PageIntro eyebrow="About My Dream Place" title="Good trips start with a little inspiration">
@@ -73,6 +78,7 @@ const AboutPage = () => (
     </section>
   </main>
 );
+
 
 const ContactPage = () => (
   <main>
@@ -92,6 +98,7 @@ const ContactPage = () => (
   </main>
 );
 
+
 function App() {
   return (
     <>
@@ -103,6 +110,7 @@ function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/destination/:slug" element={<DestinationGuide />} />
         <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -129,5 +137,6 @@ function App() {
     </>
   );
 }
+
 
 export default App;
