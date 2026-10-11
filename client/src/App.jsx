@@ -25,7 +25,7 @@ import SelectedCategory from "./pages/SelectedCategory";
 import DreamVacation from "./components/DreamVacation";
 import NextTrip from "./components/NextTrip";
 import Hotels from "./components/Hotels";
-import DestinationGuide from "./pages/DestinationGuide";
+import DestinationGuide from "./pages/DestinationGuide.jsx/DestinationGuide.jsx";
 
 
 const PageIntro = ({ eyebrow, title, children }) => (
