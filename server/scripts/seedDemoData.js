@@ -183,11 +183,15 @@ export const seedDemoData = async () => {
     const result = await Post.updateOne(
       { slug },
       {
+        $set: {
+          // Demo inventory is intentionally reusable for a non-commercial preview.
+          isDemo: true,
+          isAvailable: true,
+        },
         $setOnInsert: {
           ...listing,
           category: categories.get(listing.category),
           slug,
-          isAvailable: true,
         },
       },
       { upsert: true }

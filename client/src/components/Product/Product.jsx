@@ -63,7 +63,7 @@ const Product = () => {
   };
 
   const handleAddToCart = () => {
-    if (postDetails.isAvailable) {
+    if (postDetails.isDemo || postDetails.isAvailable) {
       setCart([...cart, postDetails]);
       localStorage.setItem("cart", JSON.stringify([...cart, postDetails]));
       toast.success("Item Added to cart");
@@ -83,6 +83,7 @@ const Product = () => {
   }
 
   const facilities = (postDetails.nearArea || []).flatMap((area) => area.split(",")).concat((postDetails.facilities || []).flatMap((facility) => facility.split(","))).map((item) => item.trim()).filter(Boolean);
+  const canBook = Boolean(postDetails.isDemo || postDetails.isAvailable);
 
   return (
     <main className="min-h-screen bg-slate-50 px-5 py-8 sm:px-8 lg:py-12">
@@ -94,13 +95,13 @@ const Product = () => {
             {postDetails.images?.length > 1 && <div className="mt-2 grid grid-cols-3 gap-2">{postDetails.images.slice(1, 4).map((img, idx) => <img key={img + idx} src={img} alt={`${postDetails.title} view ${idx + 2}`} loading="lazy" className="h-24 w-full rounded-xl object-cover sm:h-32" />)}</div>}
           </section>
           <section className="h-fit rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-24">
-            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${postDetails.isAvailable ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{postDetails.isAvailable ? "Available to book" : "Currently unavailable"}</span>
+            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${canBook ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{postDetails.isDemo ? "Demo stay · available to book" : canBook ? "Available to book" : "Currently unavailable"}</span>
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900">{postDetails.title}</h1>
             <p className="mt-3 flex items-center gap-2 text-slate-600"><MdLocationOn className="text-xl text-blue-600" />{postDetails.hotelLocation || "Location unavailable"}</p>
             <div className="mt-4 flex items-center gap-2 text-sm"><FaStar className="text-amber-400" /><span className="font-bold text-slate-900">4.8</span><span className="text-slate-500">Guest favourite</span></div>
             <p className="mt-6 border-t border-slate-100 pt-6 leading-7 text-slate-600">{postDetails.description || "Settle into a comfortable stay and explore everything this destination has to offer."}</p>
             <div className="mt-6 rounded-2xl bg-blue-50 p-5"><p className="text-sm text-slate-600">Starting from</p><p className="mt-1 text-3xl font-extrabold text-slate-900">{Number(postDetails.price || 0).toLocaleString("en-US", { style: "currency", currency: "USD" })}<span className="ml-1 text-sm font-medium text-slate-500">/ night</span></p></div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><button type="button" className="rounded-xl bg-blue-600 px-5 py-3.5 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:bg-slate-300" disabled={!postDetails.isAvailable} onClick={handleCheckIn}>Book this stay</button><button type="button" className="rounded-xl border border-slate-300 px-5 py-3.5 font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50" disabled={!postDetails.isAvailable} onClick={handleAddToCart}>Save to trips ♡</button></div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><button type="button" className="rounded-xl bg-blue-600 px-5 py-3.5 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:bg-slate-300" disabled={!canBook} onClick={handleCheckIn}>Book this stay</button><button type="button" className="rounded-xl border border-slate-300 px-5 py-3.5 font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50" disabled={!canBook} onClick={handleAddToCart}>Save to trips ♡</button></div>
             <p className="mt-3 text-center text-xs text-slate-500">Choose card or pay at the property at checkout.</p>
           </section>
         </div>

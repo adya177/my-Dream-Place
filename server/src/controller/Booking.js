@@ -36,7 +36,7 @@ export const searchBookings = async (req, res) => {
           ? [{ category: { $in: destinationCategories.map(({ _id }) => _id) } }]
           : []),
       ],
-    }).select("title hotelLocation images description slug price isAvailable");
+    }).select("title hotelLocation images description slug price isAvailable isDemo");
 
     res.json(results);
   } catch (error) {
@@ -113,6 +113,18 @@ export const updateAvailability = async (req, res) => {
   }
 
   try {
+    const currentPost = await Post.findById(postId);
+    if (!currentPost) {
+      return res.status(404).json({ error: "Post not found." });
+    }
+    if (currentPost.isDemo && isAvailable === false) {
+      return res.json({
+        success: true,
+        post: currentPost,
+        availabilityManaged: false,
+        message: "Demo stays remain bookable for preview purposes.",
+      });
+    }
     const post = await Post.findByIdAndUpdate(
       postId,
       { isAvailable },
@@ -180,6 +192,13 @@ export const createBooking = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Post not found" });
+    }
+
+    if (!post.isDemo && !post.isAvailable) {
+      return res.status(409).json({
+        success: false,
+        message: "This stay is no longer available. Please choose another stay.",
+      });
     }
 
     // Create a new booking

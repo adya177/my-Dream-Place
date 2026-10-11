@@ -32,6 +32,10 @@ const postSchema = new mongoose.Schema({
     required: true,
     default: true,
   },
+  isDemo: {
+    type: Boolean,
+    default: false,
+  },
   guest: {
     type: Number,
     required: true,
