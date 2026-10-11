@@ -49,6 +49,12 @@ const Banner = () => {
     }
   };
 
+  const openDestinationGuide = (name) => {
+    setSearch((current) => ({ ...current, keyword: name }));
+    setIsOpen(false);
+    navigate("/destination/" + name.toLowerCase().replace(/ /g, "-"));
+  };
+
   const handleKeyDown = (event) => {
     if (event.key === "ArrowDown" && isOpen) {
       event.preventDefault();
@@ -60,7 +66,7 @@ const Banner = () => {
       setIsOpen(false);
     } else if (event.key === "Enter" && isOpen && suggestions.length) {
       event.preventDefault();
-      handleSearch(event, suggestions[activeIndex]?.name || suggestions[0].name);
+      openDestinationGuide(suggestions[activeIndex]?.name || suggestions[0].name);
     }
   };
 
@@ -104,7 +110,7 @@ const Banner = () => {
                     aria-selected={index === activeIndex}
                     onMouseDown={(event) => event.preventDefault()}
                     onMouseEnter={() => setActiveIndex(index)}
-                    onClick={(event) => handleSearch(event, destination.name)}
+                    onClick={() => openDestinationGuide(destination.name)}
                     className={"flex w-full items-center gap-3 px-4 py-3 text-left transition " + (index === activeIndex ? "bg-blue-50" : "hover:bg-slate-50")}
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700"><FaMapMarkerAlt aria-hidden="true" /></span>
