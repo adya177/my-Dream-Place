@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { FaMapMarkerAlt } from "react-icons/fa";
+import { FaMapMarkerAlt, FaCompass, FaRegHeart, FaShieldAlt } from "react-icons/fa";
 import axios from "axios";
 import { toast } from "react-toastify";
 import BannerImage from "../assets/Rectangle 2.png";
@@ -71,14 +71,14 @@ const Banner = () => {
   };
 
   return (
-    <section className="relative isolate min-h-[460px] bg-cover bg-center sm:min-h-[500px]" style={{ backgroundImage: "url(" + BannerImage + ")" }}>
-      <div className="absolute inset-0 -z-10 bg-slate-950/50" />
-      <div className="mx-auto flex min-h-[460px] max-w-7xl flex-col items-center justify-center px-5 py-14 text-center text-white sm:min-h-[500px] sm:px-8">
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-blue-100">Find your next escape</p>
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Make room for a great getaway</h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-100 sm:text-lg">Explore places to stay, discover inspiring destinations, and plan a trip that feels like yours.</p>
+    <section className="relative isolate overflow-visible bg-cover bg-[center_48%]" style={{ backgroundImage: "url(" + BannerImage + ")" }}>
+      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-slate-950/75 via-slate-950/35 to-slate-950/10" />
+      <div className="mx-auto flex min-h-[520px] max-w-7xl flex-col items-start justify-center px-5 py-16 text-left text-white sm:min-h-[590px] sm:px-8 lg:px-10">
+        <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[.17em] text-white shadow-sm backdrop-blur"><FaCompass aria-hidden="true" className="text-blue-200" />A world of stays, picked for you</p>
+        <h1 className="max-w-3xl text-5xl font-extrabold leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">Go where you <span className="text-blue-200">feel most alive.</span></h1>
+        <p className="mt-5 max-w-xl text-base leading-7 text-white/85 sm:text-lg">Find a stay that makes the journey just as memorable as the destination.</p>
 
-        <form onSubmit={(event) => handleSearch(event)} className="relative mt-8 w-full max-w-3xl rounded-2xl bg-white p-2 shadow-2xl sm:flex sm:items-center sm:gap-2">
+        <form onSubmit={(event) => handleSearch(event)} className="relative mt-8 w-full max-w-4xl rounded-2xl border border-white/70 bg-white p-2 shadow-[0_24px_70px_-20px_rgba(2,6,23,.65)] sm:flex sm:items-center sm:gap-2">
           <div className="relative min-w-0 flex-1">
             <FaMapMarkerAlt aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-blue-600" />
             <input
@@ -92,7 +92,7 @@ const Banner = () => {
               aria-activedescendant={isOpen && suggestions.length ? "destination-option-" + activeIndex : undefined}
               autoComplete="off"
               placeholder="Where do you want to go?"
-              className="w-full rounded-xl border-0 bg-white py-4 pl-11 pr-4 text-left text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border-0 bg-white py-4 pl-11 pr-4 text-left text-base text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500"
               value={search.keyword || ""}
               onFocus={() => { setActiveIndex(0); setIsOpen(true); }}
               onBlur={() => window.setTimeout(() => setIsOpen(false), 120)}
@@ -123,11 +123,12 @@ const Banner = () => {
               </div>
             )}
           </div>
-          <button type="submit" disabled={loading} className="mt-2 w-full rounded-xl bg-blue-600 px-7 py-4 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70 sm:mt-0 sm:w-auto">
+          <button type="submit" disabled={loading} className="mt-2 w-full rounded-xl bg-blue-600 px-7 py-4 font-bold text-white shadow-md transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70 sm:mt-0 sm:w-auto">
             {loading ? "Searching…" : "Search stays"}
           </button>
         </form>
-        <p className="mt-3 text-sm text-slate-100">Popular searches: Bali · Kyoto · Paris · Maldives</p>
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-medium text-white/90"><span className="inline-flex items-center gap-2"><FaRegHeart className="text-rose-200" />Save the places you love</span><span className="inline-flex items-center gap-2"><FaShieldAlt className="text-emerald-200" />Simple, secure booking</span></div>
+        <p className="mt-5 text-sm text-white/80"><span className="font-semibold text-white">Trending:</span> Bali <span className="mx-2 text-white/50">·</span> Kyoto <span className="mx-2 text-white/50">·</span> Paris <span className="mx-2 text-white/50">·</span> Maldives</p>
       </div>
     </section>
   );

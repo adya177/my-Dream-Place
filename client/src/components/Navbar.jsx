@@ -26,7 +26,7 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const navLinkClass = ({ isActive }) => `whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"}`;
+  const navLinkClass = ({ isActive }) => `whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${isActive ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:bg-white/70 hover:text-slate-950"}`;
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur">
@@ -34,10 +34,11 @@ const Navbar = () => {
         <Link to="/" aria-label="My Dream Place home" className="shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
           <BrandLogo />
         </Link>
-        <div className="order-3 flex w-full items-center gap-1 overflow-x-auto pb-1 md:order-2 md:w-auto md:pb-0">
+        <div className="order-3 flex w-full items-center gap-1 overflow-x-auto rounded-full bg-slate-100 p-1 pb-1 md:order-2 md:w-auto">
           {navItems.map(([label, to]) => <NavLink key={to} to={to} end={to === "/"} className={navLinkClass}>{label}</NavLink>)}
         </div>
         <div className="relative order-2 flex items-center gap-2 md:order-3">
+          <Link to="/search" className="hidden rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:inline-flex">Find a stay</Link>
           <button type="button" aria-label="Open saved trips" onClick={() => navigate("/cart")} className="rounded-full p-2 text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
             <IoIosHeartEmpty size={22} />
           </button>
