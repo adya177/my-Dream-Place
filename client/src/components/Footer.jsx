@@ -9,7 +9,7 @@ const Footer = () => {
         Explore the world with My Dream place
       </h2>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex mt-8">
-        <div className=" mb-10">
+        <div id="about" className="mb-10 scroll-mt-6">
           <div className="">
             <img src={logo} alt="Logo" className="h-8 w-auto" />
             <h1 className="text-2xl font-semibold text-gray-900">
@@ -47,7 +47,7 @@ const Footer = () => {
                   Advertising
                 </a>
               </li>
-              <li>
+              <li id="contact" className="scroll-mt-6">
                 <a href="#" className="text-gray-600 hover:text-gray-900">
                   Contact us
                 </a>
