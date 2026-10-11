@@ -6,8 +6,10 @@ import { toast } from "react-toastify";
 import { useAuth } from "../context/UserContext";
 import { useBook } from "../context/Booking";
 
+
 const currency = (value) => Number(value || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const inputClass = "mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
+
 
 const Payment = () => {
   const stripe = useStripe();
@@ -20,6 +22,7 @@ const Payment = () => {
   const [customerName, setCustomerName] = useState(auth?.user?.name || "");
   const [address, setAddress] = useState({ line1: "", city: "", state: "", postalCode: "", country: "IN" });
 
+
   const items = useMemo(() => {
     const state = location.state;
     if (Array.isArray(state?.products)) return state.products.map((item) => ({ ...item, postId: item.postId || item._id }));
@@ -28,6 +31,7 @@ const Payment = () => {
   }, [location.state]);
   const total = items.reduce((sum, item) => sum + Number(item.price || 0), 0);
   const addressField = (key) => (event) => setAddress((current) => ({ ...current, [key]: event.target.value }));
+
 
   const handlePayment = async (event) => {
     event.preventDefault();
@@ -39,6 +43,10 @@ const Payment = () => {
     if (!auth?.token) {
       toast.error("Sign in before completing your booking.");
       navigate("/login", { state: { from: "/cart" } });
+      return;
+    }
+    if (!/^[A-Za-z]{2}$/.test(address.country.trim())) {
+      toast.error("Choose a valid country for your billing address.");
       return;
     }
     if (!stripe || !elements) {
@@ -62,13 +70,14 @@ const Payment = () => {
       if (result.error) throw new Error(result.error.message || "Card payment failed.");
       if (result.paymentIntent?.status !== "succeeded") throw new Error("Payment could not be confirmed.");
 
+
       await Promise.all(items.map(async (item) => {
         await axios.post(import.meta.env.VITE_BASE_URL + "/api/booking/create-booking", {
           token: auth.token, postId: item.postId, bookingDate: new Date(), transactionId: result.paymentIntent.id,
         });
         await axios.patch(import.meta.env.VITE_BASE_URL + "/api/booking/update-availability", { postId: item.postId, isAvailable: false });
       }));
-      const savedBookings = [...book, ...items.map((item) => ({ title: item.title, amount: item.price, customerName, postId: item.postId }))];
+      const savedBookings = [...book, ...items.map((item, index) => ({ _id: result.paymentIntent.id + ":" + index, title: item.title, amount: item.price, customerName, postId: item.postId }))];
       setBook(savedBookings);
       localStorage.setItem("booking", JSON.stringify(savedBookings));
       toast.success("Payment and booking successful.");
@@ -81,14 +90,16 @@ const Payment = () => {
     }
   };
 
+
   if (!items.length) return (
     <main className="mx-auto my-16 max-w-2xl px-6"><div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-600">⌂</div>
       <h1 className="mt-5 text-2xl font-bold text-slate-900">Your checkout is waiting for a stay</h1>
-      <p className="mt-3 text-slate-600">Choose a place to stay first, then come back here to finish your booking securely.</p>
-      <Link to="/search" className="mt-7 inline-flex rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700">Browse stays</Link>
+      <p className="mt-3 text-slate-600">Choose a destination to explore, then check for available stays before starting secure checkout.</p>
+      <div className="mt-7 flex flex-wrap justify-center gap-3"><Link to="/discover" className="inline-flex rounded-xl border border-blue-200 px-6 py-3 font-semibold text-blue-700 hover:bg-blue-50">Explore destination guides</Link><Link to="/search" className="inline-flex rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700">Find available stays</Link></div>
     </div></main>
   );
+
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 lg:py-14">
@@ -98,6 +109,7 @@ const Payment = () => {
           <div><p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-600">Secure checkout</p><h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Complete your booking</h1></div>
           <p className="text-sm text-slate-500">Your payment details are encrypted by Stripe.</p>
         </div>
+
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
           <form onSubmit={handlePayment} className="space-y-6">
@@ -109,9 +121,10 @@ const Payment = () => {
                 <label className="text-sm font-medium text-slate-700">City<input autoComplete="address-level2" value={address.city} onChange={addressField("city")} className={inputClass} placeholder="City" required /></label>
                 <label className="text-sm font-medium text-slate-700">State or region<input autoComplete="address-level1" value={address.state} onChange={addressField("state")} className={inputClass} placeholder="State or region" /></label>
                 <label className="text-sm font-medium text-slate-700">Postal code<input autoComplete="postal-code" value={address.postalCode} onChange={addressField("postalCode")} className={inputClass} placeholder="Postal code" /></label>
-                <label className="text-sm font-medium text-slate-700">Country code<input autoComplete="country" value={address.country} onChange={addressField("country")} className={inputClass} placeholder="IN" maxLength={2} required /><span className="mt-1 block text-xs font-normal text-slate-500">Use the two-letter code, for example IN or US.</span></label>
+                <label className="text-sm font-medium text-slate-700">Country<select autoComplete="country" value={address.country} onChange={addressField("country")} className={inputClass} required><option value="IN">India</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="AU">Australia</option><option value="SG">Singapore</option><option value="AE">United Arab Emirates</option></select><span className="mt-1 block text-xs font-normal text-slate-500">Used for your card billing details.</span></label>
               </div>
             </section>
+
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <h2 className="text-xl font-semibold text-slate-900">Payment method</h2><p className="mt-1 text-sm text-slate-500">Pay securely by card.</p>
@@ -122,6 +135,7 @@ const Payment = () => {
               <p className="mt-3 text-center text-xs text-slate-500">By continuing, you confirm your billing details are correct.</p>
             </section>
           </form>
+
 
           <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
             <h2 className="text-xl font-semibold text-slate-900">Booking summary</h2>
@@ -136,5 +150,6 @@ const Payment = () => {
     </main>
   );
 };
+
 
 export default Payment;
