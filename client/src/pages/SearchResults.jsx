@@ -122,7 +122,7 @@ const SearchResults = () => {
   const [guests, setGuests] = useState(params.get("guests") || "2");
   const [rooms, setRooms] = useState(params.get("rooms") || "1");
   const [minPrice, setMinPrice] = useState(params.get("minPrice") || "0");
-  const [maxPrice, setMaxPrice] = useState(params.get("maxPrice") || "15000");
+  const [maxPrice, setMaxPrice] = useState(params.get("maxPrice") || "25000");
   const [stars, setStars] = useState(params.getAll("stars"));
   const [selectedAmenities, setSelectedAmenities] = useState(params.getAll("amenity"));
   const [category, setCategory] = useState(params.get("category") || "");
@@ -164,7 +164,7 @@ const SearchResults = () => {
     setGuests(current.get("guests") || "2");
     setRooms(current.get("rooms") || "1");
     setMinPrice(current.get("minPrice") || "0");
-    setMaxPrice(current.get("maxPrice") || "15000");
+    setMaxPrice(current.get("maxPrice") || "25000");
     setStars(current.getAll("stars"));
     setSelectedAmenities(current.getAll("amenity"));
     setCategory(current.get("category") || "");
@@ -219,7 +219,7 @@ const SearchResults = () => {
     if (values.guests) query.set("guests", values.guests);
     if (values.rooms !== "1") query.set("rooms", values.rooms);
     if (values.minPrice !== "0") query.set("minPrice", values.minPrice);
-    if (values.maxPrice !== "15000") query.set("maxPrice", values.maxPrice);
+    if (values.maxPrice !== "25000") query.set("maxPrice", values.maxPrice);
     values.stars.forEach((star) => query.append("stars", star));
     values.amenities.forEach((amenity) => query.append("amenity", amenity));
     if (values.category) query.set("category", values.category);
@@ -229,8 +229,8 @@ const SearchResults = () => {
   };
 
   const resetFilters = () => {
-    setMinPrice("0"); setMaxPrice("15000"); setStars([]); setSelectedAmenities([]); setCheckIn(""); setCheckOut(""); setCategory("");
-    updateUrl(undefined, { minPrice: "0", maxPrice: "15000", stars: [], amenities: [], checkIn: "", checkOut: "", category: "" });
+    setMinPrice("0"); setMaxPrice("25000"); setStars([]); setSelectedAmenities([]); setCheckIn(""); setCheckOut(""); setCategory("");
+    updateUrl(undefined, { minPrice: "0", maxPrice: "25000", stars: [], amenities: [], checkIn: "", checkOut: "", category: "" });
   };
   const toggleFilter = (list, setter, item, key) => {
     const next = list.includes(item) ? list.filter((value) => value !== item) : [...list, item];
@@ -271,7 +271,7 @@ const SearchResults = () => {
 
       <div className="search-results-layout">
         <aside className="filter-panel"><div className="filter-heading"><h2>Refine your stay</h2><button type="button" onClick={resetFilters}>Reset</button></div>
-          <div className="filter-section"><h3>Price per night</h3><label className="range-label">{money(minPrice)} – {money(maxPrice)}</label><input aria-label="Minimum price" type="range" min="0" max="15000" step="500" value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), Number(maxPrice) - 500).toString())} onPointerUp={() => updateUrl()} onKeyUp={() => updateUrl()}/><input aria-label="Maximum price" type="range" min="1500" max="15000" step="500" value={maxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), Number(minPrice) + 500).toString())} onPointerUp={() => updateUrl()} onKeyUp={() => updateUrl()}/></div>
+          <div className="filter-section"><h3>Price per night</h3><label className="range-label">{money(minPrice)} – {money(maxPrice)}</label><input aria-label="Minimum price" type="range" min="0" max="25000" step="500" value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), Number(maxPrice) - 500).toString())} onPointerUp={() => updateUrl()} onKeyUp={() => updateUrl()}/><input aria-label="Maximum price" type="range" min="1500" max="25000" step="500" value={maxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), Number(minPrice) + 500).toString())} onPointerUp={() => updateUrl()} onKeyUp={() => updateUrl()}/></div>
           <div className="filter-section"><h3>Hotel class</h3>{[5, 4, 3].map((rating) => <label className="filter-option" key={rating}><input type="checkbox" checked={stars.includes(String(rating))} onChange={() => toggleFilter(stars, setStars, String(rating), "stars")}/>{rating} star{rating === 1 ? "" : "s"}</label>)}</div>
           <div className="filter-section"><h3>Popular perks</h3>{perks.slice(0, 5).map((perk) => <label className="filter-option" key={perk}><input type="checkbox" checked={selectedAmenities.includes(perk)} onChange={() => toggleFilter(selectedAmenities, setSelectedAmenities, perk, "amenities")}/>{perk}</label>)}</div>
         </aside>

@@ -142,10 +142,9 @@ export const searchHotelsController = async (req, res) => {
     // Keep each response bounded even when callers request a very large page.
     const limit = 20;
     const minPrice = Math.max(0, Number(req.query.minPrice) || 0);
-    const maxPrice = Math.max(minPrice, Number(req.query.maxPrice) || 15000);
+    const maxPrice = Math.max(minPrice, Number(req.query.maxPrice) || 25000);
     const city = String(req.query.city || req.query.keyword || "").trim().slice(0, 80);
     const state = String(req.query.state || "").trim().slice(0, 80);
-    const searchQuery = city || state;
     const requestedCategory = String(req.query.category || "").trim();
     const rawAmenities = req.query.amenity ?? req.query.amenities ?? "";
     const amenities = (Array.isArray(rawAmenities) ? rawAmenities : String(rawAmenities).split(","))
@@ -196,20 +195,7 @@ export const searchHotelsController = async (req, res) => {
     ]);
     // Date availability is intentionally advisory for this demo. Keep the booked
     // dates in the response for the calendar, but don't let them remove search results.
-    const hotels = [...matchedHotels];
-    if (page === 1 && hotels.length < 20) {
-      const alreadyIncluded = hotels.map(({ _id }) => _id);
-      const padding = await Hotel.find({ isAvailable: true, _id: { $nin: alreadyIncluded } })
-        .sort({ _id: -1 })
-        .limit(20)
-        .select(projection)
-        .lean()
-        .maxTimeMS(10000);
-      const fallbackHotels = padding.slice(0, 20 - hotels.length).map((hotel) => searchQuery
-        ? { ...hotel, city: searchQuery, state: searchQuery, country: searchQuery, locality: "" }
-        : hotel);
-      hotels.push(...fallbackHotels);
-    }
+    const hotels = matchedHotels;
     const postIds = hotels.map(({ postId }) => postId);
     const bookings = postIds.length ? await Booking.find({ post: { $in: postIds }, status: { $ne: "cancelled" } }).select("post bookingDate checkOutDate").lean() : [];
     const bookedByPost = new Map();
@@ -228,7 +214,7 @@ export const searchHotelsController = async (req, res) => {
       hotelId: String(hotel._id),
       _id: String(hotel.postId),
       title: hotel.name,
-      hotelLocation: hotel.locality ? `${hotel.locality}, ${hotel.city}` : hotel.city,
+      hotelLocation: `${hotel.locality}, ${hotel.city}`,
       state: hotel.state,
       price: hotel.pricePerNight,
       rating: hotel.guestRating,
@@ -237,8 +223,7 @@ export const searchHotelsController = async (req, res) => {
       isDemo: true,
       bookedDates: bookedByPost.get(String(hotel.postId)) || [],
     }));
-    const total = Math.max(matchingTotal, hotels.length);
-    res.json({ success: true, hotels, posts: formattedHotels, total, page, limit, hasMore: page * limit < matchingTotal });
+    res.json({ success: true, hotels, posts: formattedHotels, total: matchingTotal, page, limit, hasMore: page * limit < matchingTotal });
   } catch (error) {
     console.error("Error searching hotels:", error);
     res.status(500).json({ success: false, message: "Unable to search hotels right now." });

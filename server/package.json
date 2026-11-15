@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "seed:india": "node scripts/seedIndianHotels.js",
     "seed:demo": "node scripts/seedHotels.js",
     "seed:hotels": "node scripts/seedHotels.js",
     "seed:all": "node seed.js",

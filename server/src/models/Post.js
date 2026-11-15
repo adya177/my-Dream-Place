@@ -51,7 +51,7 @@ const postSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 100,
-    max: 15000,
+    max: 25000,
     index: true,
   },
   rating: {
