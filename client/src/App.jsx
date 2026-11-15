@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import PropTypes from "prop-types";
+import { AnimatePresence, motion } from "framer-motion";
 import Advertisement from "./components/Advertisement";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
@@ -29,7 +30,7 @@ import Hotels from "./components/Hotels";
 import DestinationGuide from "./pages/DestinationGuide.jsx/DestinationGuide.jsx";
 import contourPattern from "./assets/contour-pattern.svg";
 
-const SearchPage = lazy(() => import("./pages/SearchPage"));
+const SearchResults = lazy(() => import("./pages/SearchResults"));
 const HomePage = lazy(() => import("./pages/HomePage"));
 
 const PageIntro = ({ eyebrow, title, children }) => (
@@ -122,13 +123,15 @@ function App() {
     <>
       <ScrollToTop />
       <Navbar dark={pathname === "/"} />
+      <AnimatePresence mode="wait" initial={false}>
+      <motion.div key={pathname} className="app-page-transition" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: "easeOut" }}>
       <Routes>
         <Route path="/" element={<Suspense fallback={<main className="home-page min-h-screen" aria-label="Loading homepage" />}><HomePage /></Suspense>} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/activities" element={<ActivitiesPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/search" element={<Suspense fallback={<main className="search-page"><div className="search-shell"><div className="skeleton-block skeleton-line medium"/><div className="stay-grid">{[0, 1, 2].map((item) => <div key={item} className="skeleton-card"><div className="skeleton-block skeleton-image"/><div className="skeleton-content"><div className="skeleton-block skeleton-line"/><div className="skeleton-block skeleton-line medium"/></div></div>)}</div></div></main>}><SearchPage /></Suspense>} />
+        <Route path="/search" element={<Suspense fallback={<main className="search-page"><div className="search-shell"><div className="skeleton-block skeleton-line medium"/><div className="stay-grid">{[0, 1, 2].map((item) => <div key={item} className="skeleton-card"><div className="skeleton-block skeleton-image"/><div className="skeleton-content"><div className="skeleton-block skeleton-line"/><div className="skeleton-block skeleton-line medium"/></div></div>)}</div></div></main>}><SearchResults /></Suspense>} />
         <Route path="/destination/:slug" element={<DestinationGuide />} />
         <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/login" element={<Login />} />
@@ -152,6 +155,8 @@ function App() {
           <Route path="/admin/post/:slug" element={<UpdatePost />} />
         </Route>
       </Routes>
+      </motion.div>
+      </AnimatePresence>
       {showTravelPromo && <Advertisement />}
       <div className={pathname === "/" ? "home-footer" : ""}><Footer /></div>
     </>

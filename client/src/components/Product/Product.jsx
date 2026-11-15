@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
 import { MdLocationOn } from "react-icons/md";
+import { CalendarDays, Check, ShieldCheck, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 import axios from "axios";
 import RelatedProduct from "./RelatedProduct";
 import Spinner from "../Spinner";
@@ -10,121 +12,87 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../context/UserContext";
 
 const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const tomorrowOf = (key) => { const date = new Date(`${key}T00:00:00`); date.setDate(date.getDate() + 1); return dateKey(date); };
 
-const Product = () => {
-  const params = useParams();
+export default function Product() {
+  const { slug } = useParams();
   const [postDetails, setPostDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [cart, setCart] = useCart();
+  const [auth] = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [auth] = useAuth();
-
-  const handleCheckIn = () => {
-    if (!auth?.token) {
-      toast.error("Authentication required to proceed!");
-      return navigate("/login");
-    }
-    const params = new URLSearchParams(location.search);
-    const checkIn = params.get("checkIn") || dateKey(new Date());
-    const tomorrow = new Date(`${checkIn}T00:00:00`);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const checkOut = params.get("checkOut") || dateKey(tomorrow);
-    navigate("/payment", {
-      state: {
-        price: postDetails?.price,
-        product: postDetails?.title,
-        postId: postDetails?._id,
-        checkIn,
-        checkOut,
-      },
-    });
-  };
+  const params = new URLSearchParams(location.search);
+  const checkIn = params.get("checkIn") || dateKey(new Date());
+  const checkOut = params.get("checkOut") || tomorrowOf(checkIn);
 
   useEffect(() => {
-    if (params?.slug) getPostBySlug();
-  }, [params?.slug]);
+    let active = true;
+    setLoading(true);
+    axios.get(`${import.meta.env.VITE_BASE_URL}/api/post/get-post/${slug}`)
+      .then(({ data }) => {
+        if (!active) return;
+        const product = data.product;
+        setPostDetails(product);
+        if (product?._id && product?.category?._id) {
+          axios.get(`${import.meta.env.VITE_BASE_URL}/api/post/related-post/${product._id}/${product.category._id}`)
+            .then((related) => { if (active) setRelatedProducts(related.data.products || []); })
+            .catch(() => {});
+        }
+      })
+      .catch((error) => console.error("Error fetching stay details:", error.message))
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [slug]);
 
-  const getPostBySlug = async (e) => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/post/get-post/${params.slug}`
-      );
-      const product = res.data.product;
-      setPostDetails(product);
-      getRelatedPost(product?._id, product?.category?._id);
-    } catch (error) {
-      console.error("Error fetching post details:", error.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleCheckIn = () => {
+    if (!auth?.token) { toast.error("Sign in to book this stay."); return navigate("/login"); }
+    navigate("/payment", { state: { price: postDetails?.price, product: postDetails?.title, postId: postDetails?._id, checkIn, checkOut } });
   };
-
-  const getRelatedPost = async (pid, cid) => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/api/post/related-post/${pid}/${cid}`
-      );
-      setRelatedProducts(res.data.products);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
   const handleAddToCart = () => {
-    if (postDetails.isDemo || postDetails.isAvailable) {
-      const params = new URLSearchParams(location.search);
-      const checkIn = params.get("checkIn") || dateKey(new Date());
-      const tomorrow = new Date(`${checkIn}T00:00:00`);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const stay = { ...postDetails, checkIn, checkOut: params.get("checkOut") || dateKey(tomorrow) };
-      setCart([...cart, stay]);
-      localStorage.setItem("cart", JSON.stringify([...cart, stay]));
-      toast.success("Item Added to cart");
-    }
+    if (!postDetails?.isDemo && !postDetails?.isAvailable) return;
+    const stay = { ...postDetails, checkIn, checkOut };
+    const nextCart = [...cart, stay];
+    setCart(nextCart);
+    localStorage.setItem("cart", JSON.stringify(nextCart));
+    toast.success("Stay saved to your trips");
   };
 
-  if (loading) {
-    return (
-      <div className="p-8">
-        <Spinner />
-      </div>
-    );
-  }
+  if (loading) return <main className="hotel-details-page hotel-details-loading"><Spinner /></main>;
+  if (!postDetails) return <main className="hotel-details-page mx-auto max-w-3xl px-5 py-20 text-center"><h1 className="text-2xl font-bold">We couldn&apos;t find this stay</h1><p className="mt-3 text-slate-400">It may have been removed or is temporarily unavailable.</p><button type="button" onClick={() => navigate("/search")} className="mt-6 rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white hover:bg-violet-500">Search stays</button></main>;
 
-  if (!postDetails) {
-    return <main className="mx-auto max-w-3xl px-5 py-20 text-center"><h1 className="text-2xl font-bold text-slate-900">We couldn’t find this stay</h1><p className="mt-3 text-slate-600">It may have been removed or is temporarily unavailable.</p><button type="button" onClick={() => navigate("/search")} className="mt-6 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700">Search stays</button></main>;
-  }
-
-  const facilities = (postDetails.nearArea || []).flatMap((area) => area.split(",")).concat((postDetails.facilities || []).flatMap((facility) => facility.split(","))).map((item) => item.trim()).filter(Boolean);
+  const facilities = [...new Set([...(postDetails.nearArea || []), ...(postDetails.facilities || [])].flatMap((item) => item.split(",")).map((item) => item.trim()).filter(Boolean))];
   const canBook = Boolean(postDetails.isDemo || postDetails.isAvailable);
+  const galleryImages = postDetails.images?.length ? [...postDetails.images, ...postDetails.images].slice(0, 5) : [];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-8 sm:px-8 lg:py-12">
+    <main className="hotel-details-page min-h-screen px-5 py-8 sm:px-8 lg:py-12">
       <div className="mx-auto max-w-7xl">
-        <button type="button" onClick={() => navigate(-1)} className="mb-5 text-sm font-semibold text-blue-700 hover:text-blue-900">← Back to stays</button>
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,1.2fr)_minmax(340px,.8fr)]">
-          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
-            {postDetails.images?.[0] ? <img src={postDetails.images[0]} alt={postDetails.title || "Stay"} className="h-[340px] w-full rounded-2xl object-cover sm:h-[460px]" /> : <div className="flex h-[340px] items-center justify-center rounded-2xl bg-slate-100 text-slate-500">Stay photo coming soon</div>}
-            {postDetails.images?.length > 1 && <div className="mt-2 grid grid-cols-3 gap-2">{postDetails.images.slice(1, 4).map((img, idx) => <img key={img + idx} src={img} alt={`${postDetails.title} view ${idx + 2}`} loading="lazy" className="h-24 w-full rounded-xl object-cover sm:h-32" />)}</div>}
-          </section>
-          <section className="h-fit rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:sticky lg:top-24">
-            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${canBook ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{postDetails.isDemo ? "Demo stay · available to book" : canBook ? "Available to book" : "Currently unavailable"}</span>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900">{postDetails.title}</h1>
-            <p className="mt-3 flex items-center gap-2 text-slate-600"><MdLocationOn className="text-xl text-blue-600" />{postDetails.hotelLocation || "Location unavailable"}</p>
-            <div className="mt-4 flex items-center gap-2 text-sm"><FaStar className="text-amber-400" /><span className="font-bold text-slate-900">{Number(postDetails.rating || 4.8).toFixed(1)}</span><span className="text-slate-500">Guest favourite</span></div>
-            <p className="mt-6 border-t border-slate-100 pt-6 leading-7 text-slate-600">{postDetails.description || "Settle into a comfortable stay and explore everything this destination has to offer."}</p>
-            <div className="mt-6 rounded-2xl bg-blue-50 p-5"><p className="text-sm text-slate-600">Starting from</p><p className="mt-1 text-3xl font-extrabold text-slate-900">{Number(postDetails.price || 0).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })}<span className="ml-1 text-sm font-medium text-slate-500">/ night</span></p></div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2"><button type="button" className="rounded-xl bg-blue-600 px-5 py-3.5 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:bg-slate-300" disabled={!canBook} onClick={handleCheckIn}>Book this stay</button><button type="button" className="rounded-xl border border-slate-300 px-5 py-3.5 font-semibold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 disabled:opacity-50" disabled={!canBook} onClick={handleAddToCart}>Save to trips ♡</button></div>
-            <p className="mt-3 text-center text-xs text-slate-500">Choose card or pay at the property at checkout.</p>
-          </section>
+        <button type="button" onClick={() => navigate(-1)} className="mb-5 text-sm font-semibold text-violet-300 transition hover:text-white">← Back to stays</button>
+        <motion.header className="hotel-details-heading" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .45 }}>
+          <div><span><Sparkles size={14}/> YOUR NEXT GOOD STORY</span><h1>{postDetails.title}</h1><p><MdLocationOn />{postDetails.hotelLocation || "Location unavailable"}{postDetails.state ? ` · ${postDetails.state}` : ""}</p></div>
+          <div className="hotel-details-rating"><FaStar/><strong>{Number(postDetails.rating || 4.8).toFixed(1)}</strong><small>{Number(postDetails.reviewCount || 0).toLocaleString()} reviews</small></div>
+        </motion.header>
+        {galleryImages.length > 0 && <motion.section className="hotel-bento-gallery" initial={{ opacity: 0, scale: .985 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .55, delay: .08 }} aria-label="Photos of this stay">
+          {galleryImages.map((img, index) => <div key={`${img}-${index}`} className={`hotel-bento-gallery__tile${index === 0 ? " is-main" : ""}`}><img src={img} alt={`${postDetails.title} view ${index + 1}`} loading={index > 1 ? "lazy" : "eager"}/>{index === 0 && <span><Check size={14}/> Guest favourite</span>}</div>)}
+        </motion.section>}
+        <div className="hotel-details-layout">
+          <div className="hotel-details-copy">
+            <section className="hotel-details-panel"><span className={`hotel-availability-pill ${canBook ? "is-open" : ""}`}>{canBook ? "Available to book" : "Currently unavailable"}</span><h2>A stay with a little extra something.</h2><p>{postDetails.description || "Settle into a comfortable stay and explore everything this destination has to offer."}</p></section>
+            {facilities.length > 0 && <section className="hotel-details-panel"><h2>The good stuff</h2><div className="hotel-perk-grid">{facilities.map((item, index) => <span key={`${item}-${index}`}><Check size={16}/>{item}</span>)}</div></section>}
+            <section className="hotel-details-panel hotel-host-note"><ShieldCheck size={20}/><div><strong>Easy, flexible booking</strong><p>Review your dates and guest count before heading to secure checkout.</p></div></section>
+          </div>
+          <aside className="hotel-booking-widget">
+            <span className={`hotel-availability-pill ${canBook ? "is-open" : ""}`}>{postDetails.isDemo ? "Demo stay · bookable" : canBook ? "Available to book" : "Currently unavailable"}</span>
+            <div className="hotel-booking-price"><small>From</small><strong>{Number(postDetails.price || 0).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })}</strong><span>per night <i>·</i> + {Number(postDetails.taxesAndFees || 0).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })} fees</span></div>
+            <div className="hotel-booking-dates"><span><CalendarDays size={15}/> CHECK IN</span><strong>{checkIn}</strong><i/><span><CalendarDays size={15}/> CHECK OUT</span><strong>{checkOut}</strong></div>
+            <button type="button" className="hotel-booking-primary" disabled={!canBook} onClick={handleCheckIn}>Book this stay</button><button type="button" className="hotel-booking-secondary" disabled={!canBook} onClick={handleAddToCart}>Save to trips ♡</button>
+            <p className="hotel-booking-note">Choose card or pay at the property at checkout.</p>
+          </aside>
         </div>
-        {facilities.length > 0 && <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"><h2 className="text-xl font-bold text-slate-900">Around the stay</h2><div className="mt-5 flex flex-wrap gap-2">{facilities.map((item, index) => <span key={`${item}-${index}`} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">{item}</span>)}</div></section>}
-        <section className="mt-12"><h2 className="mb-6 text-2xl font-bold text-slate-900">You may also like</h2><RelatedProduct relatedProducts={relatedProducts} /></section>
+        <section className="mt-12"><h2 className="mb-6 text-2xl font-bold">You may also like</h2><RelatedProduct relatedProducts={relatedProducts} /></section>
       </div>
     </main>
   );
-};
-
-export default Product;
+}

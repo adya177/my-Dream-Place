@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Compass } from "lucide-react";
 import { Link } from "react-router-dom";
+import { indianStates } from "../../data/indianStates";
 
 const places = [
   { city: "Kyoto", country: "Japan", vibe: "Quiet mornings, neon nights", tag: "CULTURE RESET", image: "photo-1493976040374-85c8e12f0c0e", shape: "large" },
@@ -31,6 +32,10 @@ export default function BentoGrid() {
             </motion.div>
           ))}
         </motion.div>
+        <div className="home-india-states">
+          <div><span className="home-section-kicker">✦ 28 STATES · 100 STAYS EACH</span><h3>Explore India, your way.</h3><p>Find a fresh favourite in every state.</p></div>
+          <div className="home-india-states__chips">{indianStates.map((state) => <Link key={state} to={`/search?state=${encodeURIComponent(state)}`}>{state}<span>100+</span></Link>)}</div>
+        </div>
         <motion.div className="home-after-grid" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
           <span>Different city, different lore.</span><Link to="/search">Let&apos;s find your stay <ArrowUpRight size={16}/></Link>
         </motion.div>

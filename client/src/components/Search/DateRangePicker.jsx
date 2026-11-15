@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -30,6 +31,20 @@ function Month({ month, monthIndex, checkIn, checkOut, preview, disabledDates, o
     {dragging && <span className="sr-only">Drag across dates to select your stay</span>}
   </section>;
 }
+
+Month.propTypes = {
+  month: PropTypes.instanceOf(Date).isRequired,
+  monthIndex: PropTypes.number.isRequired,
+  checkIn: PropTypes.string,
+  checkOut: PropTypes.string,
+  preview: PropTypes.string,
+  disabledDates: PropTypes.instanceOf(Set).isRequired,
+  onPick: PropTypes.func.isRequired,
+  onHover: PropTypes.func.isRequired,
+  onPointerStart: PropTypes.func.isRequired,
+  onPointerEnd: PropTypes.func.isRequired,
+  dragging: PropTypes.bool,
+};
 
 export default function DateRangePicker({ checkIn, checkOut, onChange, onOpenChange, disabledDates = new Set() }) {
   const [open, setOpen] = useState(false);
@@ -69,3 +84,11 @@ export default function DateRangePicker({ checkIn, checkOut, onChange, onOpenCha
     {open && <><button type="button" className="range-picker-dismiss" aria-label="Close calendar" onClick={close} /><div className="range-calendar-popover" role="dialog" aria-label="Choose check-in and check-out dates"><div className="range-calendar-toolbar"><p>{checkIn && !checkOut ? "Choose a checkout date" : "Select your stay dates"}</p><div><button type="button" className="range-calendar-nav" aria-label="Previous month" disabled={new Date(monthBase.getFullYear(), monthBase.getMonth() - 1, 1) < new Date(new Date().getFullYear(), new Date().getMonth(), 1)} onClick={() => setMonthOffset((value) => value - 1)}><ChevronLeft size={18} /></button><button type="button" className="range-calendar-nav" aria-label="Next month" onClick={() => setMonthOffset((value) => value + 1)}><ChevronRight size={18} /></button><button type="button" className="range-calendar-close" aria-label="Close date picker" onClick={close}><X size={18} /></button></div></div><div className="range-calendar-months">{[0, 1].map((index) => { const month = new Date(monthBase.getFullYear(), monthBase.getMonth() + index, 1); return <Month key={month.toISOString()} month={month} monthIndex={index} checkIn={checkIn} checkOut={checkOut} preview={preview} disabledDates={disabledDates} onPick={select} onHover={(value) => { if (dragStart.current) setPreview(value); }} onPointerStart={pointerStart} onPointerEnd={pointerEnd} dragging={Boolean(dragStart.current)} />; })}</div><div className="range-calendar-legend"><span className="range-calendar-dot" />Dates unavailable for all stays in this search</div></div></>}
   </div>;
 }
+
+DateRangePicker.propTypes = {
+  checkIn: PropTypes.string,
+  checkOut: PropTypes.string,
+  onChange: PropTypes.func.isRequired,
+  onOpenChange: PropTypes.func,
+  disabledDates: PropTypes.instanceOf(Set),
+};

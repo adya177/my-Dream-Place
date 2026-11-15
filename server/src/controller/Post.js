@@ -83,6 +83,17 @@ export const getPostController = async (req, res) => {
     const product = await Post.findOne({ slug: req.params.slug })
       .select("-photo")
       .populate("category");
+    const hotel = await Hotel.findOne({ slug: req.params.slug }).select("images guestRating reviewCount state category pricePerNight originalPrice taxesAndFees perks").lean();
+    if (product && hotel) {
+      product.images = hotel.images;
+      product.rating = hotel.guestRating;
+      product.reviewCount = hotel.reviewCount;
+      product.state = hotel.state;
+      product.price = hotel.pricePerNight;
+      product.originalPrice = hotel.originalPrice;
+      product.taxesAndFees = hotel.taxesAndFees;
+      product.facilities = [...new Set([...(product.facilities || []), ...(hotel.perks || [])])];
+    }
     res.status(200).send({
       success: true,
       message: "Single Product Fetched",
@@ -132,6 +143,7 @@ export const searchHotelsController = async (req, res) => {
     const minPrice = Math.max(0, Number(req.query.minPrice) || 0);
     const maxPrice = Math.max(minPrice, Number(req.query.maxPrice) || 15000);
     const city = String(req.query.city || req.query.keyword || "").trim();
+    const state = String(req.query.state || "").trim();
     const requestedCategory = String(req.query.category || "").trim();
     const rawAmenities = req.query.amenity ?? req.query.amenities ?? "";
     const amenities = (Array.isArray(rawAmenities) ? rawAmenities : String(rawAmenities).split(","))
@@ -146,6 +158,7 @@ export const searchHotelsController = async (req, res) => {
       const escapedCity = city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [{ city: { $regex: escapedCity, $options: "i" } }, { locality: { $regex: escapedCity, $options: "i" } }, { name: { $regex: escapedCity, $options: "i" } }];
     }
+    if (state) query.state = { $regex: `^${state.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" };
     if (requestedCategory) query.category = requestedCategory;
     if (starRatings.length) query.starRating = { $gte: minRating };
     if (amenities.length) query.perks = { $all: amenities };
@@ -184,7 +197,7 @@ export const searchHotelsController = async (req, res) => {
         { $sort: { ...sort, _id: -1 } },
         { $skip: (page - 1) * limit },
         { $limit: limit },
-        { $project: { name: 1, city: 1, locality: 1, country: 1, starRating: 1, guestRating: 1, reviewCount: 1, category: 1, pricePerNight: 1, originalPrice: 1, taxesAndFees: 1, images: 1, perks: 1, promoTag: 1, slug: 1, description: 1, guestCapacity: 1, postId: 1, isAvailable: 1 } },
+        { $project: { name: 1, city: 1, locality: 1, country: 1, state: 1, starRating: 1, guestRating: 1, reviewCount: 1, category: 1, pricePerNight: 1, originalPrice: 1, taxesAndFees: 1, images: 1, perks: 1, promoTag: 1, slug: 1, description: 1, guestCapacity: 1, postId: 1, isAvailable: 1 } },
       ]),
       Hotel.countDocuments(query),
     ]);
@@ -207,6 +220,7 @@ export const searchHotelsController = async (req, res) => {
       _id: String(hotel.postId),
       title: hotel.name,
       hotelLocation: `${hotel.locality}, ${hotel.city}`,
+      state: hotel.state,
       price: hotel.pricePerNight,
       rating: hotel.guestRating,
       facilities: hotel.perks,
@@ -227,13 +241,15 @@ export const getHotelSuggestionsController = async (req, res) => {
     if (query.length < 1) return res.json({ suggestions: [] });
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const matcher = { $regex: escaped, $options: "i" };
-    const [cityRows, hotels, localities] = await Promise.all([
+    const [cityRows, hotels, localities, stateRows] = await Promise.all([
       Hotel.find({ city: matcher, isAvailable: true }).select("city").limit(20).lean(),
       Hotel.find({ name: matcher, isAvailable: true }).select("name city").limit(5).lean(),
       Hotel.find({ locality: matcher, isAvailable: true }).select("locality city").limit(4).lean(),
+      Hotel.find({ state: matcher, isAvailable: true }).select("state").limit(20).lean(),
     ]);
     const suggestions = [
       ...[...new Set(cityRows.map(({ city }) => city))].slice(0, 6).map((value) => ({ type: "city", value })),
+      ...[...new Set(stateRows.map(({ state }) => state).filter(Boolean))].slice(0, 6).map((value) => ({ type: "state", value })),
       ...hotels.map(({ name, city }) => ({ type: "hotel", value: name, city })),
       ...localities.map(({ locality, city }) => ({ type: "area", value: locality, city })),
     ].slice(0, 12);

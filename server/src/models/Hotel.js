@@ -21,6 +21,8 @@ const hotelSchema = new mongoose.Schema({
   promoTag: { type: String, default: "" },
   slug: { type: String, required: true, unique: true, index: true },
   country: { type: String, required: true },
+  state: { type: String, trim: true, default: "", index: true },
+  seedBatch: { type: String, default: "" },
   description: { type: String, default: "" },
   guestCapacity: { type: Number, default: 4 },
   postId: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true, index: true },
@@ -28,6 +30,9 @@ const hotelSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 hotelSchema.index({ city: 1, category: 1, starRating: 1, pricePerNight: 1 });
+hotelSchema.index({ city: 1 });
+hotelSchema.index({ state: 1, city: 1, pricePerNight: 1 });
+hotelSchema.index({ pricePerNight: 1 });
 hotelSchema.index({ guestRating: -1, reviewCount: -1 });
 
 export default mongoose.models.Hotel || mongoose.model("Hotel", hotelSchema);
