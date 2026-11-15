@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   ArrowDown, BadgePercent, BriefcaseBusiness, Building2, ChevronLeft, ChevronRight,
-  Copy, Crown, Gem, Heart, Landmark, Map, MapPin, Palmtree, Search, Sparkles, Star, Waves,
+  Copy, Crown, Gem, Heart, Landmark, Map, MapPin, Palmtree, Search, Sparkles, Star, Waves, LocateFixed,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSearch } from "../context/Serach";
@@ -26,13 +26,14 @@ const categories = [
   { label: "Beachfront", value: "Beachfront", Icon: Waves },
 ];
 const deals = [
-  { eyebrow: "STAY MORE, SAVE MORE", title: "A little extra off your next escape", code: "MMTDEAL", accent: "blue" },
+  { eyebrow: "STAY MORE, SAVE MORE", title: "A little extra off your next escape", code: "DREAM25", accent: "blue" },
   { eyebrow: "WEEKEND EDIT", title: "Make room for a slower weekend", code: "WEEKEND25", accent: "coral" },
   { eyebrow: "CARD MEMBER OFFER", title: "Unlock a better rate at checkout", code: "DREAMBANK", accent: "lavender" },
 ];
 const cardGridMotion = { hidden: {}, show: { transition: { staggerChildren: 0.055 } } };
 const cardItemMotion = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 25 } } };
 const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
+const offerLabel = (value) => String(value || "MEMBER RATE").replace(/MMTDEAL\s*[-:]?\s*/i, "").trim() || "SPECIAL OFFER";
 
 function HotelCard({ stay, checkIn, checkOut }) {
   const images = stay.images?.length ? stay.images : [fallbackImage];
@@ -67,7 +68,7 @@ function HotelCard({ stay, checkIn, checkOut }) {
       <Link to={productLink} tabIndex={-1} aria-hidden="true" className="hotel-card__photo-link">
         <img src={images[imageIndex]} alt={`${hotelName} in ${stay.city}`} loading="lazy" onError={(event) => { event.currentTarget.src = fallbackImage; }} />
       </Link>
-      <span className="hotel-card__promo"><BadgePercent size={13}/>{stay.promoTag || "MEMBER RATE"}</span>
+      <span className="hotel-card__promo"><BadgePercent size={13}/>{offerLabel(stay.promoTag)}</span>
       <motion.button type="button" aria-label={wishlisted ? `Remove ${hotelName} from wishlist` : `Add ${hotelName} to wishlist`} aria-pressed={wishlisted} className={`hotel-card__wishlist${wishlisted ? " is-saved" : ""}`} onClick={toggleWishlist} whileTap={{ scale: 1.35 }} animate={{ scale: wishlisted ? [1, 1.22, 1] : 1 }} transition={{ type: "spring", stiffness: 480, damping: 18 }}>
         <Heart size={19} fill={wishlisted ? "currentColor" : "none"}/>
       </motion.button>
@@ -126,6 +127,8 @@ const SearchPage = () => {
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
   useEffect(() => {
     const current = new URLSearchParams(location.search);
@@ -143,6 +146,18 @@ const SearchPage = () => {
     setMapView(current.get("view") === "map");
     setPage(1);
   }, [location.search]);
+
+  useEffect(() => {
+    const query = keyword.trim();
+    if (!query) { setSuggestions([]); return undefined; }
+    let active = true;
+    const timer = setTimeout(() => {
+      axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels/suggestions`, { params: { q: query } })
+        .then(({ data }) => { if (active) setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []); })
+        .catch(() => { if (active) setSuggestions([]); });
+    }, 140);
+    return () => { active = false; clearTimeout(timer); };
+  }, [keyword]);
 
   useEffect(() => {
     let active = true;
@@ -218,7 +233,9 @@ const SearchPage = () => {
     <div className="search-shell">
       <div className="marketplace-heading"><div><p className="search-eyebrow">STAYS FOR EVERY KIND OF GETAWAY</p><h1>Find a place worth the trip.</h1><p className="search-intro">Thoughtful hotels, standout stays, and better rates in one place.</p></div><span className="marketplace-heading__note"><Sparkles size={17}/> Curated stays, made easy</span></div>
       <form onSubmit={updateUrl} className={`search-pill${calendarOpen ? " is-calendar-open" : ""}`}>
-        <label><span>City or hotel</span><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Where are you going?" aria-label="City or hotel" /></label>
+        <label className="destination-field"><span>City or hotel</span><input role="combobox" aria-autocomplete="list" aria-expanded={suggestionsOpen && suggestions.length > 0} aria-controls="destination-suggestions" value={keyword} onFocus={() => setSuggestionsOpen(true)} onBlur={() => setTimeout(() => setSuggestionsOpen(false), 130)} onChange={(event) => { setKeyword(event.target.value); setSuggestionsOpen(true); }} onKeyDown={(event) => { if (event.key === "Escape") setSuggestionsOpen(false); if (event.key === "ArrowDown" && suggestions.length) { event.preventDefault(); document.querySelector("#destination-suggestions button")?.focus(); } }} placeholder="Try ‘Goa’ or ‘The Grand…’" aria-label="City or hotel" />
+          {suggestionsOpen && suggestions.length > 0 && <div className="destination-suggestions" role="listbox" id="destination-suggestions">{suggestions.map((item) => <button type="button" role="option" key={`${item.type}-${item.value}`} onMouseDown={(event) => event.preventDefault()} onClick={() => { setKeyword(item.value); setSuggestionsOpen(false); updateUrl(undefined, { keyword: item.value }); }}><span className="destination-suggestion-icon"><LocateFixed size={16}/></span><span><strong>{item.value}</strong><small>{item.type === "city" ? `Explore stays in ${item.value}` : `${item.city} · ${item.type === "hotel" ? "Hotel" : "Area"}`}</small></span><ChevronRight size={16}/></button>)}</div>}
+        </label>
         <DateRangePicker checkIn={checkIn} checkOut={checkOut} onChange={(start, end) => { setCheckIn(start); setCheckOut(end); }} onOpenChange={setCalendarOpen} disabledDates={blockedDates} />
         <label><span>Guests</span><select value={guests} onChange={(event) => setGuests(event.target.value)} aria-label="Guests">{[1, 2, 3, 4, 5, 6].map((count) => <option key={count} value={count}>{count} {count === 1 ? "guest" : "guests"}</option>)}</select></label>
         <label><span>Rooms</span><select value={rooms} onChange={(event) => setRooms(event.target.value)} aria-label="Rooms">{[1, 2, 3, 4].map((count) => <option key={count} value={count}>{count} {count === 1 ? "room" : "rooms"}</option>)}</select></label>

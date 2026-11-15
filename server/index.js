@@ -12,7 +12,7 @@ import postRoutes from "./src/routes/Post.js";
 import categoryRoutes from "./src/routes/Category.js";
 import bookingRoutes from "./src/routes/Booking.js";
 import { seedHotels } from "./scripts/seedHotels.js";
-import { searchHotelsController } from "./src/controller/Post.js";
+import { getHotelSuggestionsController, searchHotelsController } from "./src/controller/Post.js";
 
 const app = express();
 
@@ -36,6 +36,7 @@ app.get("/health", (req, res) => {
   });
 });
 app.get("/api/hotels", searchHotelsController);
+app.get("/api/hotels/suggestions", getHotelSuggestionsController);
 
 app.use((req, res, next) => {
   const isPaymentIntent = req.path === "/api/booking/create-payment-intent";

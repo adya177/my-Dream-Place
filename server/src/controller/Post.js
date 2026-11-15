@@ -221,6 +221,29 @@ export const searchHotelsController = async (req, res) => {
   }
 };
 
+export const getHotelSuggestionsController = async (req, res) => {
+  try {
+    const query = String(req.query.q || "").trim().slice(0, 80);
+    if (query.length < 1) return res.json({ suggestions: [] });
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const matcher = { $regex: `^${escaped}`, $options: "i" };
+    const [cityRows, hotels, localities] = await Promise.all([
+      Hotel.find({ city: matcher, isAvailable: true }).select("city").limit(20).lean(),
+      Hotel.find({ name: matcher, isAvailable: true }).select("name city").limit(5).lean(),
+      Hotel.find({ locality: matcher, isAvailable: true }).select("locality city").limit(4).lean(),
+    ]);
+    const suggestions = [
+      ...[...new Set(cityRows.map(({ city }) => city))].slice(0, 6).map((value) => ({ type: "city", value })),
+      ...hotels.map(({ name, city }) => ({ type: "hotel", value: name, city })),
+      ...localities.map(({ locality, city }) => ({ type: "area", value: locality, city })),
+    ].slice(0, 10);
+    res.json({ suggestions });
+  } catch (error) {
+    console.error("Error getting hotel suggestions:", error);
+    res.status(500).json({ suggestions: [] });
+  }
+};
+
 export const updatePostController = async (req, res) => {
   try {
     const { id } = req.params;

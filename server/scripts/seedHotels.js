@@ -66,7 +66,7 @@ const createListing = (index) => {
       reviewCount: faker.number.int({ min: 128, max: 2860 }),
       pricePerNight, originalPrice, taxesAndFees: Math.round(pricePerNight * 0.12),
       images, perks: selectedPerks,
-      promoTag: `MMTDEAL - ${discount}% OFF`, slug, description,
+      promoTag: `DREAMPLACE - ${discount}% OFF`, slug, description,
       guestCapacity: faker.number.int({ min: 2, max: 6 }), isAvailable: true,
     },
     post: {
