@@ -16,7 +16,7 @@ const Hotels = () => {
 
   useEffect(() => {
     let active = true;
-    axios.get(`${import.meta.env.VITE_BASE_URL}/api/post/get-all-post`)
+    axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels`, { params: { page: 1, limit: 12, sort: "rating_desc" } })
       .then((res) => { if (active) setPosts(Array.isArray(res.data?.posts) ? res.data.posts : []); })
       .catch((error) => console.error("Could not load featured stays", error));
     return () => { active = false; };

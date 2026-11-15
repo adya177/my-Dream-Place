@@ -4,6 +4,7 @@ import slug from "slugify";
 import Category from "../models/Category.js";
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
+import Hotel from "../models/Hotel.js";
 
 export const createPostController = async (req, res) => {
   try {
@@ -127,35 +128,42 @@ export const getAllPostController = async (req, res) => {
 export const searchHotelsController = async (req, res) => {
   try {
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
     const minPrice = Math.max(0, Number(req.query.minPrice) || 0);
     const maxPrice = Math.max(minPrice, Number(req.query.maxPrice) || 15000);
     const city = String(req.query.city || req.query.keyword || "").trim();
+    const requestedCategory = String(req.query.category || "").trim();
     const rawAmenities = req.query.amenity ?? req.query.amenities ?? "";
     const amenities = (Array.isArray(rawAmenities) ? rawAmenities : String(rawAmenities).split(","))
       .map((item) => String(item).trim()).filter(Boolean).slice(0, 12);
-    const requestedStars = (Array.isArray(req.query.stars) ? req.query.stars : String(req.query.stars || "").split(","))
-      .map(Number).filter((rating) => rating >= 1 && rating <= 5);
-    const minRating = Math.min(...requestedStars, 5);
-    const query = { price: { $gte: minPrice, $lte: maxPrice }, isAvailable: true };
+    const rawStars = req.query.starRating ?? req.query.stars ?? "";
+    const starRatings = (Array.isArray(rawStars) ? rawStars : String(rawStars).split(","))
+      .map(Number).filter((rating) => [3, 4, 5].includes(rating));
+    const minRating = Math.min(...starRatings, 5);
+    const query = { pricePerNight: { $gte: minPrice, $lte: maxPrice }, isAvailable: true };
 
     if (city) {
       const escapedCity = city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const matchingCategories = await Category.find({ name: { $regex: escapedCity, $options: "i" } }).select("_id").lean();
-      query.$or = [
-        { city: { $regex: `^${escapedCity}`, $options: "i" } },
-        { hotelLocation: { $regex: escapedCity, $options: "i" } },
-        { title: { $regex: escapedCity, $options: "i" } },
-        ...(matchingCategories.length ? [{ category: { $in: matchingCategories.map(({ _id }) => _id) } }] : []),
-      ];
+      query.$or = [{ city: { $regex: escapedCity, $options: "i" } }, { locality: { $regex: escapedCity, $options: "i" } }, { name: { $regex: escapedCity, $options: "i" } }];
     }
-    if (amenities.length) query.facilities = { $all: amenities };
-    if (requestedStars.length) query.rating = { $gte: minRating };
+    if (requestedCategory) query.category = requestedCategory;
+    if (starRatings.length) query.starRating = { $gte: minRating };
+    if (amenities.length) query.perks = { $all: amenities };
     const guests = Number(req.query.guests);
-    if (Number.isInteger(guests) && guests > 0) query.guest = { $gte: guests };
+    if (Number.isInteger(guests) && guests > 0) query.guestCapacity = { $gte: guests };
+
+    const sortOptions = {
+      price_asc: { pricePerNight: 1 },
+      price_desc: { pricePerNight: -1 },
+      rating_desc: { guestRating: -1, reviewCount: -1 },
+      rating_asc: { guestRating: 1, reviewCount: -1 },
+    };
+    const sort = sortOptions[req.query.sort] || sortOptions.rating_desc;
 
     const checkIn = req.query.checkIn ? new Date(`${req.query.checkIn}T00:00:00.000Z`) : null;
     const checkOut = req.query.checkOut ? new Date(`${req.query.checkOut}T00:00:00.000Z`) : null;
+    const excludedPosts = await Post.distinct("_id", { isAvailable: false });
+    if (excludedPosts.length) query.postId = { $nin: excludedPosts };
     if (checkIn && checkOut && !Number.isNaN(checkIn.getTime()) && !Number.isNaN(checkOut.getTime()) && checkOut > checkIn) {
       const conflictingBookings = await Booking.find({
         status: { $ne: "cancelled" },
@@ -165,20 +173,22 @@ export const searchHotelsController = async (req, res) => {
           { checkOutDate: { $exists: false }, bookingDate: { $gte: checkIn } },
         ],
       }).distinct("post");
-      if (conflictingBookings.length) query._id = { $nin: conflictingBookings };
+      if (conflictingBookings.length) {
+        query.postId = { ...(query.postId || {}), $nin: [...new Set([...(query.postId?.$nin || []), ...conflictingBookings])] };
+      }
     }
 
-    const [posts, total] = await Promise.all([
-      Post.aggregate([
+    const [hotels, total] = await Promise.all([
+      Hotel.aggregate([
         { $match: query },
-        { $sort: { rating: -1, _id: -1 } },
+        { $sort: { ...sort, _id: -1 } },
         { $skip: (page - 1) * limit },
         { $limit: limit },
-        { $project: { title: 1, hotelLocation: 1, city: 1, images: 1, description: 1, slug: 1, price: 1, rating: 1, isAvailable: 1, isDemo: 1, facilities: 1, category: 1 } },
+        { $project: { name: 1, city: 1, locality: 1, country: 1, starRating: 1, guestRating: 1, reviewCount: 1, category: 1, pricePerNight: 1, originalPrice: 1, taxesAndFees: 1, images: 1, perks: 1, promoTag: 1, slug: 1, description: 1, guestCapacity: 1, postId: 1, isAvailable: 1 } },
       ]),
-      Post.countDocuments(query),
+      Hotel.countDocuments(query),
     ]);
-    const postIds = posts.map(({ _id }) => _id);
+    const postIds = hotels.map(({ postId }) => postId);
     const bookings = postIds.length ? await Booking.find({ post: { $in: postIds }, status: { $ne: "cancelled" } }).select("post bookingDate checkOutDate").lean() : [];
     const bookedByPost = new Map();
     for (const booking of bookings) {
@@ -191,7 +201,20 @@ export const searchHotelsController = async (req, res) => {
       for (const night = new Date(start); night < end; night.setUTCDate(night.getUTCDate() + 1)) dates.push(night.toISOString().slice(0, 10));
       bookedByPost.set(id, dates);
     }
-    res.json({ success: true, posts: posts.map((post) => ({ ...post, bookedDates: bookedByPost.get(String(post._id)) || [] })), total, page, limit, hasMore: page * limit < total });
+    const formattedHotels = hotels.map((hotel) => ({
+      ...hotel,
+      hotelId: String(hotel._id),
+      _id: String(hotel.postId),
+      title: hotel.name,
+      hotelLocation: `${hotel.locality}, ${hotel.city}`,
+      price: hotel.pricePerNight,
+      rating: hotel.guestRating,
+      facilities: hotel.perks,
+      guest: hotel.guestCapacity,
+      isDemo: true,
+      bookedDates: bookedByPost.get(String(hotel.postId)) || [],
+    }));
+    res.json({ success: true, hotels, posts: formattedHotels, total, page, limit, hasMore: page * limit < total });
   } catch (error) {
     console.error("Error searching hotels:", error);
     res.status(500).json({ success: false, message: "Unable to search hotels right now." });

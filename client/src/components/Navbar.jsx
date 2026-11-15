@@ -29,7 +29,7 @@ const Navbar = () => {
   const navLinkClass = ({ isActive }) => `whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${isActive ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:bg-white/70 hover:text-slate-950"}`;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 shadow-sm backdrop-blur-md">
       <nav aria-label="Main navigation" className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 py-3 sm:px-8 lg:px-10">
         <Link to="/" aria-label="My Dream Place home" className="shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
           <BrandLogo />
