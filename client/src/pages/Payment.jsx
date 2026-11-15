@@ -8,6 +8,12 @@ import { useBook } from "../context/Booking";
 
 
 const currency = (value) => Number(value || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
+const todayKey = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; };
+const nightsFor = (item) => {
+  if (!item.checkIn || !item.checkOut) return 1;
+  const nights = (new Date(`${item.checkOut}T00:00:00Z`) - new Date(`${item.checkIn}T00:00:00Z`)) / 86400000;
+  return Number.isFinite(nights) && nights > 0 ? nights : 1;
+};
 const inputClass = "mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
 
@@ -27,10 +33,10 @@ const Payment = () => {
   const items = useMemo(() => {
     const state = location.state;
     if (Array.isArray(state?.products)) return state.products.map((item) => ({ ...item, postId: item.postId || item._id }));
-    if (state?.postId) return [{ title: state.product || "Your stay", price: state.price, postId: state.postId }];
+    if (state?.postId) return [{ title: state.product || "Your stay", price: state.price, postId: state.postId, checkIn: state.checkIn, checkOut: state.checkOut }];
     return [];
   }, [location.state]);
-  const total = items.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  const total = items.reduce((sum, item) => sum + Number(item.price || 0) * nightsFor(item), 0);
   const addressField = (key) => (event) => setAddress((current) => ({ ...current, [key]: event.target.value }));
 
 
@@ -53,7 +59,8 @@ const Payment = () => {
           await axios.post(import.meta.env.VITE_BASE_URL + "/api/booking/create-booking", {
             token: auth.token,
             postId: item.postId,
-            bookingDate: new Date(),
+            bookingDate: item.checkIn || todayKey(),
+            checkOutDate: item.checkOut,
             paymentStatus: "unpaid",
             paymentMethod: "property",
           });
@@ -65,9 +72,10 @@ const Payment = () => {
         const savedBookings = [...book, ...items.map((item, index) => ({
           _id: "property:" + Date.now() + ":" + index,
           title: item.title,
-          amount: item.price,
+          amount: Number(item.price || 0) * nightsFor(item),
           customerName: auth?.user?.name || "",
           postId: item.postId,
+          bookingDate: item.checkIn,
           paymentStatus: "unpaid",
           paymentMethod: "property",
         }))];
@@ -111,11 +119,12 @@ const Payment = () => {
 
       await Promise.all(items.map(async (item) => {
         await axios.post(import.meta.env.VITE_BASE_URL + "/api/booking/create-booking", {
-          token: auth.token, postId: item.postId, bookingDate: new Date(), transactionId: result.paymentIntent.id,
+          token: auth.token, postId: item.postId, bookingDate: item.checkIn || todayKey(), transactionId: result.paymentIntent.id,
+          checkOutDate: item.checkOut,
         });
         await axios.patch(import.meta.env.VITE_BASE_URL + "/api/booking/update-availability", { postId: item.postId, isAvailable: false });
       }));
-      const savedBookings = [...book, ...items.map((item, index) => ({ _id: result.paymentIntent.id + ":" + index, title: item.title, amount: item.price, customerName, postId: item.postId }))];
+      const savedBookings = [...book, ...items.map((item, index) => ({ _id: result.paymentIntent.id + ":" + index, title: item.title, amount: Number(item.price || 0) * nightsFor(item), customerName, postId: item.postId, bookingDate: item.checkIn }))];
       setBook(savedBookings);
       localStorage.setItem("booking", JSON.stringify(savedBookings));
       toast.success("Payment and booking successful.");
@@ -191,7 +200,7 @@ const Payment = () => {
           <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
             <h2 className="text-xl font-semibold text-slate-900">Booking summary</h2>
             <div className="mt-5 divide-y divide-slate-100">
-              {items.map((item, index) => <div key={item.postId || index} className="flex justify-between gap-4 py-4 first:pt-0"><span className="font-medium text-slate-700">{item.title || "Your stay"}</span><span className="shrink-0 font-semibold text-slate-900">{currency(item.price)}</span></div>)}
+              {items.map((item, index) => <div key={item.postId || index} className="flex justify-between gap-4 py-4 first:pt-0"><span className="font-medium text-slate-700">{item.title || "Your stay"}<small className="mt-1 block text-slate-500">{nightsFor(item)} {nightsFor(item) === 1 ? "night" : "nights"}</small></span><span className="shrink-0 font-semibold text-slate-900">{currency(Number(item.price || 0) * nightsFor(item))}</span></div>)}
             </div>
             <div className="mt-2 flex justify-between border-t border-slate-200 pt-5 text-lg font-bold text-slate-900"><span>Total</span><span>{currency(total)}</span></div>
             <p className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-800">{paymentMethod === "card" ? "Your reservation will be confirmed after the secure card payment completes." : "Your stay will be reserved now. Payment is due when you arrive."}</p>

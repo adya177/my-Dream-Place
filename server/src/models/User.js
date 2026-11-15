@@ -18,6 +18,10 @@ const userModel = new mongoose.Schema({
     enum: ["user", "admin"],
     default: "user",
   },
+  isDemo: {
+    type: Boolean,
+    default: false,
+  },
   resetToken: String,
   resetTokenExpiration: Date,
 });

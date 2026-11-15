@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import JWT from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 
 // Register controller
 export const registerController = async (req, res) => {
@@ -9,6 +10,9 @@ export const registerController = async (req, res) => {
     const normalizedEmail = email?.trim().toLowerCase();
     if (!name?.trim() || !normalizedEmail || !password) {
       return res.status(400).json({ error: "Name, email, and password are required" });
+    }
+    if (normalizedEmail === "demo-user@mydreamplace.invalid") {
+      return res.status(400).json({ error: "That email address is reserved for the demo account" });
     }
     if (password.length < 6) {
       return res.status(400).json({ error: "Password must be at least 6 characters long" });
@@ -32,6 +36,32 @@ export const registerController = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Public demo access. The account is deliberately limited to the user role.
+export const demoLoginController = async (_req, res) => {
+  try {
+    if (!process.env.JWT_SECRET) {
+      return res.status(503).json({ error: "Authentication is not configured on the server" });
+    }
+    const email = "demo-user@mydreamplace.invalid";
+    let user = await User.findOne({ email, isDemo: true });
+    if (!user) {
+      const password = await bcrypt.hash(randomBytes(32).toString("hex"), await bcrypt.genSalt(10));
+      try {
+        user = await User.create({ name: "Dream Place Demo Guest", email, password, role: "user", isDemo: true });
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+        user = await User.findOne({ email, isDemo: true });
+        if (!user) throw error;
+      }
+    }
+    const token = JWT.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    return res.status(200).json({ success: true, message: "Demo session ready", token, user: { id: user._id, name: user.name, email: user.email, role: "user" } });
+  } catch (error) {
+    console.error("Demo login error:", error.message);
+    return res.status(503).json({ error: "Demo login is temporarily unavailable" });
   }
 };
 

@@ -36,9 +36,21 @@ export const searchBookings = async (req, res) => {
           ? [{ category: { $in: destinationCategories.map(({ _id }) => _id) } }]
           : []),
       ],
-    }).select("title hotelLocation images description slug price isAvailable isDemo");
-
-    res.json(results);
+    }).select("title hotelLocation images description slug price isAvailable isDemo facilities");
+    const postIds = results.map(({ _id }) => _id);
+    const bookings = postIds.length ? await Booking.find({ post: { $in: postIds }, status: { $ne: "cancelled" } }).select("post bookingDate checkOutDate") : [];
+    const bookedByPost = new Map();
+    for (const booking of bookings) {
+      const postId = String(booking.post);
+      const dates = bookedByPost.get(postId) || [];
+      const start = new Date(booking.bookingDate);
+      start.setUTCHours(0, 0, 0, 0);
+      const end = booking.checkOutDate ? new Date(booking.checkOutDate) : new Date(start.getTime() + 86400000);
+      end.setUTCHours(0, 0, 0, 0);
+      for (const night = new Date(start); night < end; night.setUTCDate(night.getUTCDate() + 1)) dates.push(night.toISOString().slice(0, 10));
+      bookedByPost.set(postId, dates);
+    }
+    res.json(results.map((post) => ({ ...post.toObject(), bookedDates: bookedByPost.get(String(post._id)) || [] })));
   } catch (error) {
     console.error(error);
     res.status(400).send({
@@ -145,6 +157,7 @@ export const createBooking = async (req, res) => {
       token,
       postId,
       bookingDate,
+      checkOutDate,
       transactionId,
       paymentStatus = "paid",
       paymentMethod = "card",
@@ -201,11 +214,35 @@ export const createBooking = async (req, res) => {
       });
     }
 
+    const checkIn = new Date(bookingDate);
+    if (Number.isNaN(checkIn.getTime())) {
+      return res.status(400).json({ success: false, message: "Choose a valid check-in date." });
+    }
+    checkIn.setUTCHours(0, 0, 0, 0);
+    const checkOut = checkOutDate ? new Date(checkOutDate) : new Date(checkIn.getTime() + 86400000);
+    if (Number.isNaN(checkOut.getTime()) || checkOut <= checkIn) {
+      return res.status(400).json({ success: false, message: "Check-out must be after check-in." });
+    }
+    checkOut.setUTCHours(0, 0, 0, 0);
+    const conflictingBooking = await Booking.findOne({
+      post: postId,
+      status: { $ne: "cancelled" },
+      bookingDate: { $lt: checkOut },
+      $or: [
+        { checkOutDate: { $gt: checkIn } },
+        { checkOutDate: { $exists: false }, bookingDate: { $gte: checkIn } },
+      ],
+    }).select("_id");
+    if (conflictingBooking) {
+      return res.status(409).json({ success: false, message: "This stay is already booked for one or more selected dates." });
+    }
+
     // Create a new booking
     const booking = new Booking({
       user: userId, // Use the decoded userId here
       post: postId,
-      bookingDate,
+      bookingDate: checkIn,
+      checkOutDate: checkOut,
       transactionId: transactionId || undefined,
       paymentStatus,
       paymentMethod,

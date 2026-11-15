@@ -51,17 +51,16 @@ const Login = ({ expectedRole = "user" }) => {
   };
 
   const handleDemoLogin = async () => {
-    const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
-    const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
-    if (!demoEmail || !demoPassword) {
-      toast.info("Add VITE_DEMO_EMAIL and VITE_DEMO_PASSWORD to enable demo login.");
-      return;
-    }
     setError(null);
     try {
-      await loginWith(demoEmail, demoPassword);
+      const { data } = await axios.post(`${import.meta.env.VITE_BASE_URL}/auth/api/demo-login`);
+      if (!data?.token || !data?.user || data.user.role !== "user") throw new Error("The server returned an incomplete demo session");
+      setAuth({ ...auth, user: data.user, token: data.token });
+      localStorage.setItem("auth", JSON.stringify(data));
+      toast.success("Welcome to the demo account");
+      navigate(location.state?.from?.pathname || location.state || "/");
     } catch (error) {
-      const message = error.response?.data?.error || "Demo login is unavailable. Check the configured demo account.";
+      const message = error.response?.data?.error || "Demo login is unavailable. Please try again later.";
       setError(message);
       toast.error(message);
     }

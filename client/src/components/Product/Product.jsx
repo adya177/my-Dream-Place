@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
 import { MdLocationOn } from "react-icons/md";
 import axios from "axios";
@@ -9,6 +9,8 @@ import { useCart } from "../../context/Cart";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/UserContext";
 
+const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
 const Product = () => {
   const params = useParams();
   const [postDetails, setPostDetails] = useState(null);
@@ -16,6 +18,7 @@ const Product = () => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [cart, setCart] = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
   const [auth] = useAuth();
 
   const handleCheckIn = () => {
@@ -23,11 +26,18 @@ const Product = () => {
       toast.error("Authentication required to proceed!");
       return navigate("/login");
     }
+    const params = new URLSearchParams(location.search);
+    const checkIn = params.get("checkIn") || dateKey(new Date());
+    const tomorrow = new Date(`${checkIn}T00:00:00`);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const checkOut = params.get("checkOut") || dateKey(tomorrow);
     navigate("/payment", {
       state: {
         price: postDetails?.price,
         product: postDetails?.title,
         postId: postDetails?._id,
+        checkIn,
+        checkOut,
       },
     });
   };
@@ -64,8 +74,13 @@ const Product = () => {
 
   const handleAddToCart = () => {
     if (postDetails.isDemo || postDetails.isAvailable) {
-      setCart([...cart, postDetails]);
-      localStorage.setItem("cart", JSON.stringify([...cart, postDetails]));
+      const params = new URLSearchParams(location.search);
+      const checkIn = params.get("checkIn") || dateKey(new Date());
+      const tomorrow = new Date(`${checkIn}T00:00:00`);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const stay = { ...postDetails, checkIn, checkOut: params.get("checkOut") || dateKey(tomorrow) };
+      setCart([...cart, stay]);
+      localStorage.setItem("cart", JSON.stringify([...cart, stay]));
       toast.success("Item Added to cart");
     }
   };

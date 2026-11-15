@@ -28,6 +28,8 @@ const CartPage = () => {
           title: product.title,
           postId: product._id,
           price: product.price,
+          checkIn: product.checkIn,
+          checkOut: product.checkOut,
         })),
       },
     });

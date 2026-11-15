@@ -1,11 +1,12 @@
 import express from "express";
-import { getUserInfo, loginController, registerController } from "../controller/User.js";
+import { demoLoginController, getUserInfo, loginController, registerController } from "../controller/User.js";
 import { requireSignIn, isAdmin } from "../middlewares/Auth.js";
 
 const router = express.Router();
 
 router.post("/register", registerController);
 router.post("/login", loginController);
+router.post("/demo-login", demoLoginController);
 router.get('/user', getUserInfo);
 
 //protected User route auth
