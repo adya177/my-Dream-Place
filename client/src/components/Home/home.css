@@ -46,8 +46,8 @@ body { color:#f4f4f5; background:#09090b; }
 .home-search-glass { grid-template-columns:1.25fr 1.3fr .85fr auto; }
 .home-search-field--dates { padding:.55rem .4rem; }
 .home-search-field--dates .date-range-picker { width:100%; min-width:0; border:0; }
-.home-search-field--dates .date-range-trigger { display:flex; width:100%; min-height:44px; justify-content:flex-start; gap:.65rem; margin:0; padding:.3rem .4rem; border:0; border-radius:10px; color:#c4b5fd; background:transparent; text-align:left; }
-.home-search-field--dates .date-range-trigger:hover { color:#fff; background:rgba(139,92,246,.09); }
+.home-search-field--dates .date-range-trigger { display:flex; width:100%; min-height:44px; justify-content:flex-start; gap:.65rem; margin:0; padding:.3rem .55rem; border:1px solid #4b5563; border-radius:8px; color:#f4f4f5; background:#1e1e1e; text-align:left; }
+.home-search-field--dates .date-range-trigger:hover { color:#fff; border-color:#64748b; background:#27272a; }.home-search-field--dates .date-range-trigger:focus-visible { outline:none; box-shadow:0 0 0 2px #3b82f6; }
 .home-search-field--dates .date-range-trigger > span { display:grid; min-width:0; flex:1; gap:.2rem; }
 .home-search-field--dates .date-range-trigger small { color:#81818d; font-size:.55rem; font-weight:800; letter-spacing:.13em; }
 .home-search-field--dates .date-range-trigger strong { overflow:hidden; color:#f4f4f5; font-size:.75rem; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
