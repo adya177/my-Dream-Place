@@ -16,7 +16,7 @@ const hotelSchema = new mongoose.Schema({
   pricePerNight: { type: Number, min: 1, required: true },
   originalPrice: { type: Number, min: 1, required: true },
   taxesAndFees: { type: Number, min: 0, default: 0 },
-  images: { type: [String], required: true, validate: [(items) => items.length >= 3, "At least three photos are required"] },
+  images: { type: [String], required: true, validate: [(items) => items.length >= 1 && items.length <= 3, "Provide between one and three photos"] },
   perks: { type: [String], default: [] },
   promoTag: { type: String, default: "" },
   slug: { type: String, required: true, unique: true, index: true },

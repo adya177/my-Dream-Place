@@ -7,6 +7,16 @@ import Category from "../src/models/Category.js";
 import Hotel from "../src/models/Hotel.js";
 import Post from "../src/models/Post.js";
 
+const realisticHotelImages = [
+  "https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1540518614846-7eded433c457?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=800&auto=format&fit=crop",
+];
 const brands = ["Taj", "ITC", "The Leela", "Oberoi", "Lemon Tree", "Radisson Blu", "Treebo Trend", "FabHotel", "Oyo Rooms", "Sterling", "Club Mahindra", "Vivanta", "Trident", "Novotel", "Hyatt Regency"];
 const suffixes = ["Palace", "Resort & Spa", "Residency", "Boutique Hotel", "Grand", "Retreat", "Inn", "Suites"];
 const stateCityMap = {
@@ -61,7 +71,7 @@ function validateCityMap() {
   return entries;
 }
 
-function createListings(state, cities, stateIndex, batchId, categoryIds) {
+function createListings(state, cities, batchId, categoryIds) {
   return Array.from({ length: citiesPerState }, (_, itemIndex) => {
     const city = faker.helpers.arrayElement(cities);
     const brand = faker.helpers.arrayElement(brands);
@@ -75,9 +85,8 @@ function createListings(state, cities, stateIndex, batchId, categoryIds) {
     const discount = faker.number.int({ min: 10, max: 35 });
     const originalPrice = Math.round(price / (1 - discount / 100));
     const slug = `${slugify(`${title}-${city}-${state}`, { lower: true, strict: true })}-${batchId}-${itemIndex + 1}`;
-    const images = [0, 1, 2].map((imageIndex) =>
-      `https://picsum.photos/seed/${batchId}-${stateIndex}-${itemIndex}-${imageIndex}/800/600`,
-    );
+    const imageCount = faker.number.int({ min: 1, max: 3 });
+    const images = faker.helpers.arrayElements(realisticHotelImages, { min: imageCount, max: imageCount });
     const selectedPerks = faker.helpers.arrayElements(perks, { min: 3, max: 5 });
     const description = `${title} offers ${faker.company.catchPhrase().toLowerCase()} in ${city}, ${state}. ${faker.lorem.sentence()}`;
     const postId = new mongoose.Types.ObjectId();
@@ -150,8 +159,8 @@ export async function seedIndianHotels() {
   const oldDemoPosts = oldHotelPostIds.length
     ? await Post.find({ _id: { $in: oldHotelPostIds }, isDemo: true }).distinct("_id")
     : [];
-  const listings = stateEntries.flatMap(([state, cities], stateIndex) =>
-    createListings(state, cities, stateIndex, batchId, categoryIds),
+  const listings = stateEntries.flatMap(([state, cities]) =>
+    createListings(state, cities, batchId, categoryIds),
   );
   const postDocuments = listings.map(({ post }) => post);
   const hotelDocuments = listings.map(({ hotel }) => hotel);

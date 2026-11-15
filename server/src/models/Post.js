@@ -26,7 +26,7 @@ const postSchema = new mongoose.Schema({
   images: {
     type: [String],
     required: true,
-    validate: [arrayLimit, "You must provide exactly 3 images"],
+    validate: [arrayLimit, "Provide between one and three images"],
   },
   slug: {
     type: String,
@@ -74,7 +74,7 @@ postSchema.index({ city: 1, price: 1 });
 postSchema.index({ facilities: 1 });
 
 function arrayLimit(val) {
-  return val.length === 3;
+  return val.length >= 1 && val.length <= 3;
 }
 
 export default mongoose.model("Post", postSchema);
