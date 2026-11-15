@@ -9,6 +9,12 @@ const CartPage = () => {
   const [auth] = useAuth();
   const [cart, setCart] = useCart();
   const navigate = useNavigate();
+  const nightsFor = (item) => {
+    if (!item.checkIn || !item.checkOut) return 1;
+    const nights = (new Date(`${item.checkOut}T00:00:00Z`) - new Date(`${item.checkIn}T00:00:00Z`)) / 86400000;
+    return Number.isFinite(nights) && nights > 0 ? nights : 1;
+  };
+  const formatPrice = (value) => Number(value || 0).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
   const handleCheckIn = () => {
     if (!auth?.token) {
@@ -51,15 +57,10 @@ const CartPage = () => {
 
   const totalPrice = () => {
     try {
-      return cart
-        .reduce((total, item) => total + item.price, 0)
-        .toLocaleString("en-US", {
-          style: "currency",
-          currency: "USD",
-        });
+      return formatPrice(cart.reduce((total, item) => total + Number(item.price || 0) * nightsFor(item), 0));
     } catch (error) {
       console.log(error);
-      return "$0.00";
+      return formatPrice(0);
     }
   };
 
@@ -77,7 +78,7 @@ const CartPage = () => {
                 {cart.map((product) => (
                   <li key={product._id} className="flex flex-wrap items-center gap-4 py-5 sm:flex-nowrap">
                     {product.images?.[0] ? <img src={product.images[0]} alt={product.title || "Stay"} className="h-24 w-28 shrink-0 rounded-xl object-cover sm:h-28 sm:w-36" /> : <div className="flex h-24 w-28 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-500 sm:h-28 sm:w-36">Photo coming soon</div>}
-                    <div className="min-w-0 flex-1"><h3 className="font-semibold text-slate-900">{product.title}</h3><p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">{product.description || "A place to make your next trip memorable."}</p><p className="mt-2 text-sm font-bold text-slate-900">${Number(product.price || 0).toLocaleString("en-US")}</p></div>
+                    <div className="min-w-0 flex-1"><h3 className="font-semibold text-slate-900">{product.title}</h3><p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">{product.description || "A place to make your next trip memorable."}</p><p className="mt-2 text-sm font-bold text-slate-900">{formatPrice(product.price)} <span className="font-normal text-slate-500">/ night</span></p></div>
                     <button type="button" onClick={() => handleRemove(product._id)} aria-label={`Remove ${product.title} from saved stays`} className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"><FaTrashAlt size={16} /></button>
                   </li>
                 ))}
@@ -85,7 +86,7 @@ const CartPage = () => {
             </section>
             <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
               <h2 className="text-lg font-bold text-slate-900">Price summary</h2>
-              <div className="mt-5 space-y-3">{cart.map((product) => <div key={product._id} className="flex justify-between gap-4 text-sm text-slate-600"><span className="truncate">{product.title}</span><span className="shrink-0 font-medium text-slate-800">${Number(product.price || 0).toLocaleString("en-US")}</span></div>)}</div>
+              <div className="mt-5 space-y-3">{cart.map((product) => <div key={product._id} className="flex justify-between gap-4 text-sm text-slate-600"><span className="truncate">{product.title} · {nightsFor(product)} {nightsFor(product) === 1 ? "night" : "nights"}</span><span className="shrink-0 font-medium text-slate-800">{formatPrice(Number(product.price || 0) * nightsFor(product))}</span></div>)}</div>
               <div className="mt-5 flex justify-between border-t border-slate-200 pt-5 text-lg font-bold text-slate-900"><span>Total</span><span>{totalPrice()}</span></div>
               <button type="button" className="mt-6 w-full rounded-xl bg-blue-600 px-5 py-3.5 font-semibold text-white shadow-sm transition hover:bg-blue-700" onClick={auth?.token ? handleCheckIn : () => navigate("/login")}>{auth?.token ? "Continue to checkout" : "Sign in to continue"}<span aria-hidden="true" className="ml-2">→</span></button>
               <p className="mt-3 text-center text-xs leading-5 text-slate-500">You can choose card payment or pay at the property during checkout.</p>

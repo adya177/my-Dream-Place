@@ -11,7 +11,8 @@ import authRoutes from "./src/routes/User.js";
 import postRoutes from "./src/routes/Post.js";
 import categoryRoutes from "./src/routes/Category.js";
 import bookingRoutes from "./src/routes/Booking.js";
-import { seedDemoData } from "./scripts/seedDemoData.js";
+import { seedHotels } from "./scripts/seedHotels.js";
+import { searchHotelsController } from "./src/controller/Post.js";
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.get("/health", (req, res) => {
     database: databaseConnected ? "connected" : "disconnected",
   });
 });
+app.get("/api/hotels", searchHotelsController);
 
 app.use((req, res, next) => {
   const isPaymentIntent = req.path === "/api/booking/create-payment-intent";
@@ -57,7 +59,7 @@ const PORT = process.env.PORT || 3000;
 const connectWithRetry = async () => {
   try {
     await connectToDb();
-    await seedDemoData();
+    await seedHotels();
   } catch (error) {
     console.error(`MongoDB setup is not ready: ${error.message}`);
     const retryTimer = setTimeout(connectWithRetry, 10000);

@@ -7,7 +7,7 @@ import { useAuth } from "../context/UserContext";
 import { useBook } from "../context/Booking";
 
 
-const currency = (value) => Number(value || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
+const currency = (value) => Number(value || 0).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 const todayKey = () => { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; };
 const nightsFor = (item) => {
   if (!item.checkIn || !item.checkOut) return 1;
@@ -102,7 +102,7 @@ const Payment = () => {
     setLoading(true);
     try {
       const response = await axios.post(import.meta.env.VITE_BASE_URL + "/api/booking/create-payment-intent", {
-        amount: Math.round(total * 100), currency: "usd", description: "My Dream Place booking (" + items.length + " stay)", customerName,
+        amount: Math.round(total * 100), currency: "inr", description: "My Dream Place booking (" + items.length + " stay)", customerName,
         customerAddress: { ...address, country: address.country.trim().toUpperCase() },
       });
       const data = response.data;

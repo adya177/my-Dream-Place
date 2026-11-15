@@ -38,9 +38,9 @@ const Banner = () => {
     setIsOpen(false);
     setLoading(true);
     try {
-      const response = await axios.get(import.meta.env.VITE_BASE_URL + "/api/booking/search/" + encodeURIComponent(keyword));
-      setSearch((current) => ({ ...current, keyword, results: Array.isArray(response.data) ? response.data : [] }));
-      navigate("/search");
+      const response = await axios.get(import.meta.env.VITE_BASE_URL + "/api/hotels", { params: { city: keyword, page: 1, limit: 20 } });
+      setSearch((current) => ({ ...current, keyword, results: response.data?.posts || [] }));
+      navigate(`/search?city=${encodeURIComponent(keyword)}`);
     } catch (error) {
       const message = error.response?.data?.message || "Search is temporarily unavailable. Please try again.";
       toast.error(message);

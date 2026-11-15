@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import axios from "axios";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ChevronLeft, ChevronRight, Map, MapPin, Search } from "lucide-react";
+import { ArrowDown, ChevronLeft, ChevronRight, Map, MapPin, Search, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSearch } from "../context/Serach";
 import { Button } from "../components/ui/button";
@@ -11,7 +11,8 @@ import DateRangePicker from "../components/Search/DateRangePicker";
 const StayMap = lazy(() => import("../components/Search/StayMap"));
 
 const fallbackImage = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80";
-const amenities = ["Pool", "Wi-Fi", "Parking"];
+const amenities = ["Pool", "Wi-Fi", "Parking", "Spa", "Gym", "Free Breakfast"];
+const pageSize = 20;
 const cardGridMotion = { hidden: {}, show: { transition: { staggerChildren: 0.075 } } };
 const cardItemMotion = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] } } };
 
@@ -30,7 +31,7 @@ function StayCard({ stay, checkIn, checkOut }) {
     <div className="stay-card__image"><Link to={productLink} tabIndex={-1} aria-hidden="true" className="stay-card__image-link"><img src={images[imageIndex]} alt="" onError={(event) => { event.currentTarget.src = fallbackImage; }} /></Link>
       {images.length > 1 && <><button aria-label="Previous photo" className="stay-card__arrow stay-card__arrow--left" onClick={(event) => move(event, -1)}><ChevronLeft size={18} /></button><button aria-label="Next photo" className="stay-card__arrow stay-card__arrow--right" onClick={(event) => move(event, 1)}><ChevronRight size={18} /></button><span className="stay-card__count">{imageIndex + 1} / {images.length}</span></>}
     </div>
-    <Link to={productLink} className="stay-card__body"><p className="stay-card__location"><MapPin size={15} strokeWidth={1.8} />{stay.hotelLocation || "Destination stay"}</p><h3>{stay.title}</h3><p className="stay-card__description">{stay.description || "A comfortable place to make your trip memorable."}</p><p className="stay-card__price">${Number(stay.price || 0).toLocaleString()} <span>/ night</span></p></Link>
+    <Link to={productLink} className="stay-card__body"><p className="stay-card__location"><MapPin size={15} strokeWidth={1.8} />{stay.hotelLocation || "Destination stay"}<span className="stay-card__rating"><Star size={14} fill="currentColor" />{Number(stay.rating || 4).toFixed(1)}</span></p><h3>{stay.title}</h3><p className="stay-card__description">{stay.description || "A comfortable place to make your trip memorable."}</p><p className="stay-card__price">₹{Number(stay.price || 0).toLocaleString("en-IN")} <span>/ night</span></p></Link>
   </article>;
 }
 StayCard.propTypes = { stay: PropTypes.shape({ images: PropTypes.arrayOf(PropTypes.string), slug: PropTypes.string, title: PropTypes.string, hotelLocation: PropTypes.string, description: PropTypes.string, price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }).isRequired, checkIn: PropTypes.string, checkOut: PropTypes.string };
@@ -42,9 +43,9 @@ function SkeletonCards() {
 const SearchPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [, setSearch] = useSearch();
   const params = new URLSearchParams(location.search);
-  const [keyword, setKeyword] = useState(params.get("city") || params.get("keyword") || "");
+  const [search, setSearch] = useSearch();
+  const [keyword, setKeyword] = useState(params.get("city") || params.get("keyword") || search.keyword || "");
   const [checkIn, setCheckIn] = useState(params.get("checkIn") || "");
   const [checkOut, setCheckOut] = useState(params.get("checkOut") || "");
   const [guests, setGuests] = useState(params.get("guests") || "2");
@@ -52,11 +53,15 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [minPrice, setMinPrice] = useState(params.get("minPrice") || "0");
-  const [maxPrice, setMaxPrice] = useState(params.get("maxPrice") || "5000");
+  const [maxPrice, setMaxPrice] = useState(params.get("maxPrice") || "15000");
   const [stars, setStars] = useState(params.getAll("stars"));
   const [selectedAmenities, setSelectedAmenities] = useState(params.getAll("amenity"));
   const [mapView, setMapView] = useState(params.get("view") === "map");
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search).get("city") || new URLSearchParams(location.search).get("keyword") || "";
@@ -65,20 +70,31 @@ const SearchPage = () => {
     setCheckOut(new URLSearchParams(location.search).get("checkOut") || "");
     setGuests(new URLSearchParams(location.search).get("guests") || "2");
     setMinPrice(new URLSearchParams(location.search).get("minPrice") || "0");
-    setMaxPrice(new URLSearchParams(location.search).get("maxPrice") || "5000");
+    setMaxPrice(new URLSearchParams(location.search).get("maxPrice") || "15000");
     setStars(new URLSearchParams(location.search).getAll("stars"));
     setSelectedAmenities(new URLSearchParams(location.search).getAll("amenity"));
     setMapView(new URLSearchParams(location.search).get("view") === "map");
-    if (!query.trim()) { setResults([]); return; }
+    setPage(1);
+  }, [location.search]);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const query = urlParams.get("city") || urlParams.get("keyword") || "";
+    if (!query.trim()) { setResults([]); setTotalCount(0); setHasMore(false); setLoading(false); setLoadingMore(false); return; }
     let active = true;
-    setLoading(true);
+    setLoading(page === 1);
+    setLoadingMore(page > 1);
     setSearchError("");
-    axios.get(`${import.meta.env.VITE_BASE_URL}/api/booking/search/${encodeURIComponent(query.trim())}`)
-      .then(({ data }) => { if (active) { const stays = Array.isArray(data) ? data : []; setResults(stays); setSearch((prev) => ({ ...prev, keyword: query, results: stays })); } })
-      .catch((error) => { console.error("Unable to search stays:", error); if (active) { const message = "We couldn't load stays right now. Please try again."; setResults([]); setSearchError(message); toast.error(message); } })
-      .finally(() => active && setLoading(false));
+    const requestParams = new URLSearchParams(location.search);
+    requestParams.set("city", query.trim());
+    requestParams.set("page", String(page));
+    requestParams.set("limit", String(pageSize));
+    axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels?${requestParams.toString()}`)
+      .then(({ data }) => { if (active) { const stays = Array.isArray(data?.posts) ? data.posts : []; setResults((previous) => page === 1 ? stays : [...previous, ...stays]); setTotalCount(data?.total || 0); setHasMore(Boolean(data?.hasMore)); setSearch((prev) => ({ ...prev, keyword: query, results: stays })); } })
+      .catch((error) => { console.error("Unable to search stays:", error); if (active) { const message = "We couldn't load stays right now. Please try again."; if (page === 1) setResults([]); setSearchError(message); toast.error(message); } })
+    .finally(() => { if (active) { setLoading(false); setLoadingMore(false); } });
     return () => { active = false; };
-  }, [location.search, setSearch]);
+  }, [location.search, page, setSearch]);
 
   const blockedDates = useMemo(() => {
     if (!results.length) return new Set();
@@ -86,36 +102,27 @@ const SearchPage = () => {
     return new Set([...candidates].filter((date) => results.every((stay) => stay.isAvailable === false || (stay.bookedDates || []).includes(date))));
   }, [results]);
 
-  const visible = useMemo(() => results.filter((stay) => {
-    const price = Number(stay.price || 0);
-    const text = `${stay.description || ""} ${(stay.amenities || stay.facilities || []).join(" ")}`.toLowerCase();
-    const starValue = Number(stay.rating || stay.stars || 0);
-    const rangeStart = checkIn ? new Date(`${checkIn}T00:00:00`) : null;
-    const rangeEnd = checkOut ? new Date(`${checkOut}T00:00:00`) : rangeStart && new Date(rangeStart.getTime() + 86400000);
-    const overlapsBookedDate = rangeStart && (stay.bookedDates || []).some((date) => { const value = new Date(`${date}T00:00:00`); return value >= rangeStart && value < rangeEnd; });
-    const available = stay.isAvailable !== false || stay.isDemo;
-    return available && !overlapsBookedDate && price >= Number(minPrice || 0) && price <= Number(maxPrice || Infinity) &&
-      (!stars.length || (starValue > 0 && stars.some((star) => starValue >= Number(star)))) &&
-      selectedAmenities.every((amenity) => text.includes(amenity.toLowerCase()));
-  }), [results, minPrice, maxPrice, stars, selectedAmenities, checkIn, checkOut]);
+  const visible = results;
 
-  const updateUrl = (event) => {
+  const updateUrl = (event, overrides = {}) => {
     event?.preventDefault();
+    const values = { keyword, checkIn, checkOut, guests, minPrice, maxPrice, stars, amenities: selectedAmenities, mapView, ...overrides };
     const query = new URLSearchParams();
-    if (keyword.trim()) query.set("city", keyword.trim());
-    if (checkIn) query.set("checkIn", checkIn);
-    if (checkOut) query.set("checkOut", checkOut);
-    if (guests) query.set("guests", guests);
-    if (minPrice !== "0") query.set("minPrice", minPrice);
-    if (maxPrice !== "5000") query.set("maxPrice", maxPrice);
-    stars.forEach((star) => query.append("stars", star));
-    selectedAmenities.forEach((amenity) => query.append("amenity", amenity));
-    if (mapView) query.set("view", "map");
+    if (values.keyword.trim()) query.set("city", values.keyword.trim());
+    if (values.checkIn) query.set("checkIn", values.checkIn);
+    if (values.checkOut) query.set("checkOut", values.checkOut);
+    if (values.guests) query.set("guests", values.guests);
+    if (values.minPrice !== "0") query.set("minPrice", values.minPrice);
+    if (values.maxPrice !== "15000") query.set("maxPrice", values.maxPrice);
+    values.stars.forEach((star) => query.append("stars", star));
+    values.amenities.forEach((amenity) => query.append("amenity", amenity));
+    if (values.mapView) query.set("view", "map");
+    setPage(1);
     navigate(`/search?${query.toString()}`);
   };
 
-  const resetFilters = () => { setMinPrice("0"); setMaxPrice("5000"); setStars([]); setSelectedAmenities([]); };
-  const toggleList = (list, setter, item) => setter(list.includes(item) ? list.filter((value) => value !== item) : [...list, item]);
+  const resetFilters = () => { setMinPrice("0"); setMaxPrice("15000"); setStars([]); setSelectedAmenities([]); setCheckIn(""); setCheckOut(""); updateUrl(undefined, { minPrice: "0", maxPrice: "15000", stars: [], amenities: [], checkIn: "", checkOut: "" }); };
+  const toggleFilter = (list, setter, item, key) => { const next = list.includes(item) ? list.filter((value) => value !== item) : [...list, item]; setter(next); updateUrl(undefined, key === "amenities" ? { amenities: next } : { stars: next }); };
 
   return <main className="search-page">
     <div className="search-shell">
@@ -132,13 +139,14 @@ const SearchPage = () => {
 
       {keyword && <div className="search-results-layout">
         <aside className="filter-panel"><div className="filter-heading"><h2>Filters</h2><button type="button" onClick={resetFilters}>Clear</button></div>
-          <div className="filter-section"><h3>Price per night</h3><label className="range-label">${Number(minPrice).toLocaleString()} – ${Number(maxPrice).toLocaleString()}</label><input type="range" min="0" max="5000" step="50" value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), Number(maxPrice) - 50).toString())}/><input type="range" min="50" max="5000" step="50" value={maxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), Number(minPrice) + 50).toString())}/></div>
-          <div className="filter-section"><h3>Guest rating</h3>{[4, 3].map((rating) => <label className="filter-option" key={rating}><input type="checkbox" checked={stars.includes(String(rating))} onChange={() => toggleList(stars, setStars, String(rating))}/>{rating}+ stars</label>)}</div>
-          <div className="filter-section"><h3>Amenities</h3>{amenities.map((amenity) => <label className="filter-option" key={amenity}><input type="checkbox" checked={selectedAmenities.includes(amenity)} onChange={() => toggleList(selectedAmenities, setSelectedAmenities, amenity)}/>{amenity}</label>)}</div>
+          <div className="filter-section"><h3>Price per night</h3><label className="range-label">₹{Number(minPrice).toLocaleString("en-IN")} – ₹{Number(maxPrice).toLocaleString("en-IN")}</label><input aria-label="Minimum price" type="range" min="0" max="15000" step="500" value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), Number(maxPrice) - 500).toString())} onPointerUp={() => updateUrl()} onKeyUp={() => updateUrl()}/><input aria-label="Maximum price" type="range" min="1500" max="15000" step="500" value={maxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), Number(minPrice) + 500).toString())} onPointerUp={() => updateUrl()} onKeyUp={() => updateUrl()}/></div>
+          <div className="filter-section"><h3>Guest rating</h3>{[4, 3].map((rating) => <label className="filter-option" key={rating}><input type="checkbox" checked={stars.includes(String(rating))} onChange={() => toggleFilter(stars, setStars, String(rating), "stars")}/>{rating}+ stars</label>)}</div>
+          <div className="filter-section"><h3>Amenities</h3>{amenities.map((amenity) => <label className="filter-option" key={amenity}><input type="checkbox" checked={selectedAmenities.includes(amenity)} onChange={() => toggleFilter(selectedAmenities, setSelectedAmenities, amenity, "amenities")}/>{amenity}</label>)}</div>
           <Button type="button" className="apply-filters" onClick={() => updateUrl()}>Apply filters</Button>
         </aside>
-        <section className="results-column"><div className="results-heading"><div><h2>Stays for “{keyword}”</h2><p>{loading ? "Finding places…" : `${visible.length} ${visible.length === 1 ? "place" : "places"} to explore`}</p></div><Button variant="outline" className={`map-toggle ${mapView ? "is-active" : ""}`} onClick={() => { const next = !mapView; setMapView(next); const nextParams = new URLSearchParams(location.search); next ? nextParams.set("view", "map") : nextParams.delete("view"); navigate(`/search?${nextParams.toString()}`); }}><Map size={17} />{mapView ? "Hide map" : "Show map"}</Button></div>
-          {loading ? <SkeletonCards /> : visible.length ? <div className={mapView ? "results-with-map" : ""}><motion.div className="stay-grid" variants={cardGridMotion} initial="hidden" animate="show">{visible.map((stay) => <motion.div key={stay._id} variants={cardItemMotion}><StayCard stay={stay} checkIn={checkIn} checkOut={checkOut}/></motion.div>)}</motion.div>{mapView && <Suspense fallback={<div className="stay-map stay-map__loading" role="status">Loading interactive map…</div>}><StayMap stays={visible} checkIn={checkIn} checkOut={checkOut} /></Suspense>}</div> : <section className="search-empty search-empty--results"><div className="empty-art" aria-hidden="true"><svg viewBox="0 0 240 160"><circle cx="103" cy="72" r="39"/><path d="m132 101 34 34M34 137h172M65 81l22-22 17 17 20-25"/></svg></div><h2>No stays found for these filters</h2><p>{checkIn && checkOut ? "No stays are available for these dates and filters." : "Try another destination or clear your filters to see more places."}</p><Button className="clear-filters" onClick={() => { resetFilters(); setCheckIn(""); setCheckOut(""); }}>Clear filters</Button></section>}
+        <section className="results-column"><div className="results-heading"><div><h2>Stays for “{keyword}”</h2><p>{loading ? "Finding places…" : `${totalCount.toLocaleString()} ${totalCount === 1 ? "place" : "places"} to explore`}</p></div><Button variant="outline" className={`map-toggle ${mapView ? "is-active" : ""}`} onClick={() => updateUrl(undefined, { mapView: !mapView })}><Map size={17} />{mapView ? "Hide map" : "Show map"}</Button></div>
+          {loading ? <SkeletonCards /> : visible.length ? <div className={mapView ? "results-with-map" : ""}><motion.div className="stay-grid" variants={cardGridMotion} initial="hidden" animate="show">{visible.map((stay) => <motion.div key={stay._id} variants={cardItemMotion}><StayCard stay={stay} checkIn={checkIn} checkOut={checkOut}/></motion.div>)}</motion.div>{mapView && <Suspense fallback={<div className="stay-map stay-map__loading" role="status">Loading interactive map…</div>}><StayMap stays={visible} checkIn={checkIn} checkOut={checkOut} /></Suspense>}</div> : <section className="search-empty search-empty--results"><div className="empty-art" aria-hidden="true"><svg viewBox="0 0 240 160"><circle cx="103" cy="72" r="39"/><path d="m132 101 34 34M34 137h172M65 81l22-22 17 17 20-25"/></svg></div><h2>No stays found for these filters</h2><p>{checkIn && checkOut ? "No stays are available for these dates and filters." : "Try another destination or clear your filters to see more places."}</p><Button className="clear-filters" onClick={resetFilters}>Clear filters</Button></section>}
+          {!loading && hasMore && <Button className="load-more" onClick={() => setPage((current) => current + 1)} disabled={loadingMore}>{loadingMore ? "Finding more stays…" : <>Load more stays <ArrowDown size={16}/></>}</Button>}
         </section>
       </div>}
     </div>

@@ -9,6 +9,7 @@ export const createPostController = async (req, res) => {
     const {
       title,
       hotelLocation,
+      city,
       description,
       facilities,
       nearArea,
@@ -52,6 +53,7 @@ export const createPostController = async (req, res) => {
     const newPost = new Post({
       title,
       hotelLocation,
+      city: city || hotelLocation.split(",")[0].trim(),
       description,
       facilities,
       nearArea,
@@ -96,12 +98,20 @@ export const getPostController = async (req, res) => {
 
 export const getAllPostController = async (req, res) => {
   try {
-    const posts = await Post.find({});
-    //.populate("category");
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+    const [posts, total] = await Promise.all([
+      Post.find({}).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit),
+      Post.countDocuments({}),
+    ]);
     res.status(200).send({
       success: true,
       message: "All Products Fetched",
       posts,
+      total,
+      page,
+      limit,
+      hasMore: page * limit < total,
     });
   } catch (error) {
     console.log(error);
@@ -113,12 +123,87 @@ export const getAllPostController = async (req, res) => {
   }
 };
 
+export const searchHotelsController = async (req, res) => {
+  try {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
+    const minPrice = Math.max(0, Number(req.query.minPrice) || 0);
+    const maxPrice = Math.max(minPrice, Number(req.query.maxPrice) || 15000);
+    const city = String(req.query.city || req.query.keyword || "").trim();
+    const rawAmenities = req.query.amenity ?? req.query.amenities ?? "";
+    const amenities = (Array.isArray(rawAmenities) ? rawAmenities : String(rawAmenities).split(","))
+      .map((item) => String(item).trim()).filter(Boolean).slice(0, 12);
+    const requestedStars = (Array.isArray(req.query.stars) ? req.query.stars : String(req.query.stars || "").split(","))
+      .map(Number).filter((rating) => rating >= 1 && rating <= 5);
+    const minRating = Math.min(...requestedStars, 5);
+    const query = { price: { $gte: minPrice, $lte: maxPrice }, isAvailable: true };
+
+    if (city) {
+      const escapedCity = city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const matchingCategories = await Category.find({ name: { $regex: escapedCity, $options: "i" } }).select("_id").lean();
+      query.$or = [
+        { city: { $regex: `^${escapedCity}`, $options: "i" } },
+        { hotelLocation: { $regex: escapedCity, $options: "i" } },
+        { title: { $regex: escapedCity, $options: "i" } },
+        ...(matchingCategories.length ? [{ category: { $in: matchingCategories.map(({ _id }) => _id) } }] : []),
+      ];
+    }
+    if (amenities.length) query.facilities = { $all: amenities };
+    if (requestedStars.length) query.rating = { $gte: minRating };
+    const guests = Number(req.query.guests);
+    if (Number.isInteger(guests) && guests > 0) query.guest = { $gte: guests };
+
+    const checkIn = req.query.checkIn ? new Date(`${req.query.checkIn}T00:00:00.000Z`) : null;
+    const checkOut = req.query.checkOut ? new Date(`${req.query.checkOut}T00:00:00.000Z`) : null;
+    if (checkIn && checkOut && !Number.isNaN(checkIn.getTime()) && !Number.isNaN(checkOut.getTime()) && checkOut > checkIn) {
+      const conflictingBookings = await Booking.find({
+        status: { $ne: "cancelled" },
+        bookingDate: { $lt: checkOut },
+        $or: [
+          { checkOutDate: { $gt: checkIn } },
+          { checkOutDate: { $exists: false }, bookingDate: { $gte: checkIn } },
+        ],
+      }).distinct("post");
+      if (conflictingBookings.length) query._id = { $nin: conflictingBookings };
+    }
+
+    const [posts, total] = await Promise.all([
+      Post.aggregate([
+        { $match: query },
+        { $sort: { rating: -1, _id: -1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: limit },
+        { $project: { title: 1, hotelLocation: 1, city: 1, images: 1, description: 1, slug: 1, price: 1, rating: 1, isAvailable: 1, isDemo: 1, facilities: 1, category: 1 } },
+      ]),
+      Post.countDocuments(query),
+    ]);
+    const postIds = posts.map(({ _id }) => _id);
+    const bookings = postIds.length ? await Booking.find({ post: { $in: postIds }, status: { $ne: "cancelled" } }).select("post bookingDate checkOutDate").lean() : [];
+    const bookedByPost = new Map();
+    for (const booking of bookings) {
+      const id = String(booking.post);
+      const dates = bookedByPost.get(id) || [];
+      const start = new Date(booking.bookingDate);
+      start.setUTCHours(0, 0, 0, 0);
+      const end = booking.checkOutDate ? new Date(booking.checkOutDate) : new Date(start.getTime() + 86400000);
+      end.setUTCHours(0, 0, 0, 0);
+      for (const night = new Date(start); night < end; night.setUTCDate(night.getUTCDate() + 1)) dates.push(night.toISOString().slice(0, 10));
+      bookedByPost.set(id, dates);
+    }
+    res.json({ success: true, posts: posts.map((post) => ({ ...post, bookedDates: bookedByPost.get(String(post._id)) || [] })), total, page, limit, hasMore: page * limit < total });
+  } catch (error) {
+    console.error("Error searching hotels:", error);
+    res.status(500).json({ success: false, message: "Unable to search hotels right now." });
+  }
+};
+
 export const updatePostController = async (req, res) => {
   try {
     const { id } = req.params;
     const {
       title,
       hotelLocation,
+      city,
       description,
       facilities,
       nearArea,
@@ -182,6 +267,7 @@ export const updatePostController = async (req, res) => {
       {
         ...(title && { title }),
         ...(hotelLocation && { hotelLocation }),
+        ...(city && { city }),
         ...(description && { description }),
         ...(facilities && { facilities }),
         ...(nearArea && { nearArea }),

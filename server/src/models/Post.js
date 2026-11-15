@@ -9,6 +9,11 @@ const postSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  city: {
+    type: String,
+    trim: true,
+    index: true,
+  },
   description: {
     type: String,
     required: true,
@@ -46,7 +51,14 @@ const postSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 100,
-    max: 5000,
+    max: 15000,
+    index: true,
+  },
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5,
+    default: 4,
   },
   nearArea: {
     type: [String],
@@ -57,6 +69,9 @@ const postSchema = new mongoose.Schema({
     required: true,
   },
 });
+
+postSchema.index({ city: 1, price: 1 });
+postSchema.index({ facilities: 1 });
 
 function arrayLimit(val) {
   return val.length === 3;

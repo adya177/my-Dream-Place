@@ -4,61 +4,12 @@ import Stripe from "stripe";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import User from "../models/User.js";
-import Category from "../models/Category.js";
+import { searchHotelsController } from "./Post.js";
 
 export const searchBookings = async (req, res) => {
-  try {
-    const { keyword } = req.params;
+  req.query.city = req.params.keyword;
+  return searchHotelsController(req, res);
 
-    const trimmedKeyword = keyword.trim();
-    if (!trimmedKeyword) {
-      return res.json([]);
-    }
-
-    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const phrase = escapeRegex(trimmedKeyword);
-    const words = trimmedKeyword
-      .split(/\s+/)
-      .map(escapeRegex)
-      .join("|");
-
-    const destinationCategories = await Category.find({
-      name: { $regex: phrase, $options: "i" },
-    }).select("_id");
-
-    // Match destinations, listing titles, locations, and descriptions.
-    const results = await Post.find({
-      $or: [
-        { title: { $regex: phrase, $options: "i" } },
-        { hotelLocation: { $regex: phrase, $options: "i" } },
-        { description: { $regex: words, $options: "i" } },
-        ...(destinationCategories.length
-          ? [{ category: { $in: destinationCategories.map(({ _id }) => _id) } }]
-          : []),
-      ],
-    }).select("title hotelLocation images description slug price isAvailable isDemo facilities");
-    const postIds = results.map(({ _id }) => _id);
-    const bookings = postIds.length ? await Booking.find({ post: { $in: postIds }, status: { $ne: "cancelled" } }).select("post bookingDate checkOutDate") : [];
-    const bookedByPost = new Map();
-    for (const booking of bookings) {
-      const postId = String(booking.post);
-      const dates = bookedByPost.get(postId) || [];
-      const start = new Date(booking.bookingDate);
-      start.setUTCHours(0, 0, 0, 0);
-      const end = booking.checkOutDate ? new Date(booking.checkOutDate) : new Date(start.getTime() + 86400000);
-      end.setUTCHours(0, 0, 0, 0);
-      for (const night = new Date(start); night < end; night.setUTCDate(night.getUTCDate() + 1)) dates.push(night.toISOString().slice(0, 10));
-      bookedByPost.set(postId, dates);
-    }
-    res.json(results.map((post) => ({ ...post.toObject(), bookedDates: bookedByPost.get(String(post._id)) || [] })));
-  } catch (error) {
-    console.error(error);
-    res.status(400).send({
-      success: false,
-      message: "Error In Search Product API",
-      error,
-    });
-  }
 };
 
 export const createPaymentIntent = async (req, res) => {

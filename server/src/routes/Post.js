@@ -6,11 +6,13 @@ import {
   getPostController,
   popularPostController,
   postFiltersController,
+  searchHotelsController,
   relatedPostController,
   updatePostController,
 } from "../controller/Post.js";
 
 const app = express.Router();
+app.get("/hotels", searchHotelsController);
 app.post("/create-post", createPostController);
 app.get("/get-post/:slug", getPostController);
 app.get("/get-all-post", getAllPostController);

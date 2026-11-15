@@ -12,7 +12,7 @@ const knownCities = {
   newyork: [40.7128, -74.006], "new york": [40.7128, -74.006], rome: [41.9028, 12.4964], "los angeles": [34.0522, -118.2437],
 };
 const geocodeCache = new Map();
-const priceIcon = (price) => L.divIcon({ className: "stay-price-pin-wrap", html: `<span class="stay-price-pin">$${Number(price || 0).toLocaleString()}</span>`, iconSize: [1, 1], iconAnchor: [0, 18] });
+const priceIcon = (price) => L.divIcon({ className: "stay-price-pin-wrap", html: `<span class="stay-price-pin">₹${Number(price || 0).toLocaleString("en-IN")}</span>`, iconSize: [1, 1], iconAnchor: [0, 18] });
 const cityName = (value = "") => value.split(",")[0].trim();
 const keyName = (value = "") => cityName(value).toLowerCase();
 
@@ -53,5 +53,5 @@ export default function StayMap({ stays, checkIn, checkOut }) {
   if (checkIn) dateParams.set("checkIn", checkIn);
   if (checkOut) dateParams.set("checkOut", checkOut);
   const center = pins[0]?.position || [20, 0];
-  return <div className="stay-map" aria-label="Interactive map with hotel price markers"><MapContainer center={center} zoom={2} scrollWheelZoom className="stay-map__canvas"><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><MapViewport pins={pins} />{pins.map(({ stay, position }) => <Marker key={stay._id} position={position} icon={priceIcon(stay.price)}><Popup><div className="stay-map-popup"><strong>{stay.title}</strong><span>${Number(stay.price || 0).toLocaleString()} / night</span><Link to={`/product/${stay.slug}${dateParams.size ? `?${dateParams}` : ""}`}>View stay</Link></div></Popup></Marker>)}</MapContainer>{!pins.length && <div className="stay-map__status">{geocoding ? "Locating stays on the map…" : "No locations could be mapped for these stays."}</div>}<small className="stay-map__attribution">Map data &copy; OpenStreetMap</small></div>;
+  return <div className="stay-map" aria-label="Interactive map with hotel price markers"><MapContainer center={center} zoom={2} scrollWheelZoom className="stay-map__canvas"><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><MapViewport pins={pins} />{pins.map(({ stay, position }) => <Marker key={stay._id} position={position} icon={priceIcon(stay.price)}><Popup><div className="stay-map-popup"><strong>{stay.title}</strong><span>₹{Number(stay.price || 0).toLocaleString("en-IN")} / night</span><Link to={`/product/${stay.slug}${dateParams.size ? `?${dateParams}` : ""}`}>View stay</Link></div></Popup></Marker>)}</MapContainer>{!pins.length && <div className="stay-map__status">{geocoding ? "Locating stays on the map…" : "No locations could be mapped for these stays."}</div>}<small className="stay-map__attribution">Map data &copy; OpenStreetMap</small></div>;
 }
