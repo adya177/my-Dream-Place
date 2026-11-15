@@ -158,7 +158,7 @@ export const searchHotelsController = async (req, res) => {
       const escapedCity = city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [{ city: { $regex: escapedCity, $options: "i" } }, { locality: { $regex: escapedCity, $options: "i" } }, { name: { $regex: escapedCity, $options: "i" } }];
     }
-    if (state) query.state = { $regex: `^${state.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" };
+    if (state) query.state = { $regex: state.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
     if (requestedCategory) query.category = requestedCategory;
     if (starRatings.length) query.starRating = { $gte: minRating };
     if (amenities.length) query.perks = { $all: amenities };
@@ -173,25 +173,7 @@ export const searchHotelsController = async (req, res) => {
     };
     const sort = sortOptions[req.query.sort] || sortOptions.rating_desc;
 
-    const checkIn = req.query.checkIn ? new Date(`${req.query.checkIn}T00:00:00.000Z`) : null;
-    const checkOut = req.query.checkOut ? new Date(`${req.query.checkOut}T00:00:00.000Z`) : null;
-    const excludedPosts = await Post.distinct("_id", { isAvailable: false });
-    if (excludedPosts.length) query.postId = { $nin: excludedPosts };
-    if (checkIn && checkOut && !Number.isNaN(checkIn.getTime()) && !Number.isNaN(checkOut.getTime()) && checkOut > checkIn) {
-      const conflictingBookings = await Booking.find({
-        status: { $ne: "cancelled" },
-        bookingDate: { $lt: checkOut },
-        $or: [
-          { checkOutDate: { $gt: checkIn } },
-          { checkOutDate: { $exists: false }, bookingDate: { $gte: checkIn } },
-        ],
-      }).distinct("post");
-      if (conflictingBookings.length) {
-        query.postId = { ...(query.postId || {}), $nin: [...new Set([...(query.postId?.$nin || []), ...conflictingBookings])] };
-      }
-    }
-
-    const [hotels, total] = await Promise.all([
+    const [matchedHotels, matchingTotal] = await Promise.all([
       Hotel.aggregate([
         { $match: query },
         { $sort: { ...sort, _id: -1 } },
@@ -201,6 +183,19 @@ export const searchHotelsController = async (req, res) => {
       ]),
       Hotel.countDocuments(query),
     ]);
+    // Date availability is intentionally advisory for this demo. Keep the booked
+    // dates in the response for the calendar, but don't let them remove search results.
+    const hotels = [...matchedHotels];
+    const minimumResults = Math.min(15, Math.max(10, limit));
+    if (page === 1 && hotels.length < minimumResults) {
+      const alreadyIncluded = hotels.map(({ _id }) => _id);
+      const padding = await Hotel.aggregate([
+        { $match: { _id: { $nin: alreadyIncluded } } },
+        { $sample: { size: minimumResults - hotels.length } },
+        { $project: { name: 1, city: 1, locality: 1, country: 1, state: 1, starRating: 1, guestRating: 1, reviewCount: 1, category: 1, pricePerNight: 1, originalPrice: 1, taxesAndFees: 1, images: 1, perks: 1, promoTag: 1, slug: 1, description: 1, guestCapacity: 1, postId: 1, isAvailable: 1 } },
+      ]);
+      hotels.push(...padding);
+    }
     const postIds = hotels.map(({ postId }) => postId);
     const bookings = postIds.length ? await Booking.find({ post: { $in: postIds }, status: { $ne: "cancelled" } }).select("post bookingDate checkOutDate").lean() : [];
     const bookedByPost = new Map();
@@ -228,7 +223,8 @@ export const searchHotelsController = async (req, res) => {
       isDemo: true,
       bookedDates: bookedByPost.get(String(hotel.postId)) || [],
     }));
-    res.json({ success: true, hotels, posts: formattedHotels, total, page, limit, hasMore: page * limit < total });
+    const total = Math.max(matchingTotal, hotels.length);
+    res.json({ success: true, hotels, posts: formattedHotels, total, page, limit, hasMore: page * limit < matchingTotal });
   } catch (error) {
     console.error("Error searching hotels:", error);
     res.status(500).json({ success: false, message: "Unable to search hotels right now." });
