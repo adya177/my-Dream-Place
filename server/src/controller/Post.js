@@ -226,7 +226,7 @@ export const getHotelSuggestionsController = async (req, res) => {
     const query = String(req.query.q || "").trim().slice(0, 80);
     if (query.length < 1) return res.json({ suggestions: [] });
     const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const matcher = { $regex: `^${escaped}`, $options: "i" };
+    const matcher = { $regex: escaped, $options: "i" };
     const [cityRows, hotels, localities] = await Promise.all([
       Hotel.find({ city: matcher, isAvailable: true }).select("city").limit(20).lean(),
       Hotel.find({ name: matcher, isAvailable: true }).select("name city").limit(5).lean(),
@@ -236,7 +236,7 @@ export const getHotelSuggestionsController = async (req, res) => {
       ...[...new Set(cityRows.map(({ city }) => city))].slice(0, 6).map((value) => ({ type: "city", value })),
       ...hotels.map(({ name, city }) => ({ type: "hotel", value: name, city })),
       ...localities.map(({ locality, city }) => ({ type: "area", value: locality, city })),
-    ].slice(0, 10);
+    ].slice(0, 12);
     res.json({ suggestions });
   } catch (error) {
     console.error("Error getting hotel suggestions:", error);
