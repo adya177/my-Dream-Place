@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import SkeletonCard from "./SkeletonCard";
 
 const responsive = {
   desktop: { breakpoint: { max: 3000, min: 1024 }, items: 3 },
@@ -11,16 +15,18 @@ const responsive = {
 };
 
 const Hotels = () => {
-  const [posts, setPosts] = useState([]);
   const [imageIndexes, setImageIndexes] = useState({});
-
+  const featuredQuery = useQuery({
+    queryKey: ["featured-hotels"],
+    queryFn: async () => {
+      const { data } = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels`, { params: { page: 1, limit: 12, sort: "rating_desc" } });
+      return Array.isArray(data?.posts) ? data.posts : [];
+    },
+  });
+  const posts = useMemo(() => featuredQuery.data || [], [featuredQuery.data]);
   useEffect(() => {
-    let active = true;
-    axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels`, { params: { page: 1, limit: 12, sort: "rating_desc" } })
-      .then((res) => { if (active) setPosts(Array.isArray(res.data?.posts) ? res.data.posts : []); })
-      .catch((error) => console.error("Could not load featured stays", error));
-    return () => { active = false; };
-  }, []);
+    if (featuredQuery.isError) toast.error("Could not load featured stays.");
+  }, [featuredQuery.isError]);
 
   useEffect(() => {
     if (posts.length < 1) return undefined;
@@ -43,15 +49,15 @@ const Hotels = () => {
         <div><p className="text-sm font-semibold uppercase tracking-[.16em] text-blue-600">Handpicked for you</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Popular stays</h2><p className="mt-2 text-slate-600">Places to make your next getaway feel special.</p></div>
         <Link to="/search" className="font-semibold text-blue-700 transition hover:text-blue-900">See all stays <span aria-hidden="true">→</span></Link>
       </div>
-      {posts.length ? (
+      {featuredQuery.isLoading ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"><SkeletonCard count={3}/></div> : posts.length ? (
         <Carousel responsive={responsive} removeArrowOnDeviceType={["mobile"]} itemClass="px-2 pb-2" containerClass="-mx-2" dotListClass="!static mt-4" showDots={posts.length > 3}>
           {posts.map((hotel) => {
             const images = hotel.images || [];
             const image = images[imageIndexes[hotel._id] || 0];
-            return <Link to={`/product/${hotel.slug}`} key={hotel._id} className="group mx-auto block h-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none">
+            return <motion.div key={hotel._id} whileHover={{ y: -4, scale: 1.01 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}><Link to={`/product/${hotel.slug}`} className="group mx-auto block h-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none">
               <div className="relative h-64 overflow-hidden bg-slate-100">{image ? <img src={image} alt={hotel.title || "Featured stay"} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-slate-400">Stay photo coming soon</div>}<span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">Featured stay</span></div>
               <div className="p-5"><h3 className="text-lg font-bold text-slate-900">{hotel.title}</h3><p className="mt-1 text-sm text-slate-500">{hotel.hotelLocation || "Explore this destination"}</p><div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4"><span className="font-semibold text-blue-700">View stay</span><span className="text-blue-700 transition group-hover:translate-x-1" aria-hidden="true">→</span></div></div>
-            </Link>;
+            </Link></motion.div>;
           })}
         </Carousel>
       ) : <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-600">Featured stays are loading. <Link to="/search" className="font-semibold text-blue-700">Search all stays</Link></div>}

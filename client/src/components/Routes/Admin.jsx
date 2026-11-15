@@ -3,6 +3,7 @@ import { useAuth } from "../../context/UserContext";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import axios from "axios";
 import Spinner from "../../components/Spinner";
+import toast from "react-hot-toast";
 
 export default function PrivateRoute() {
   const [auth] = useAuth();
@@ -24,8 +25,8 @@ export default function PrivateRoute() {
           }
         );
         if (isCurrent) setOk(Boolean(res.data.ok));
-      } catch (error) {
-        console.error("Admin authorization check failed:", error.message);
+      } catch {
+        toast.error("Admin access could not be verified.");
         if (isCurrent) setOk(false);
       } finally {
         if (isCurrent) setChecking(false);

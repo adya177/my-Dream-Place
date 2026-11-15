@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { FaImage } from "react-icons/fa";
 import Navbar from "./Navbar";
 import axios from "axios";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 
 const CreatePost = () => {
   const [title, setTitle] = useState("");
@@ -24,8 +24,8 @@ const CreatePost = () => {
         `${import.meta.env.VITE_BASE_URL}/api/category/get-category`
       );
       setCategory(response.data.category);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
+    } catch {
+      toast.error("Could not load categories. Please try again.");
     }
   };
 
@@ -36,7 +36,7 @@ const CreatePost = () => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 3) {
-      toast.warn("You can only upload a maximum of 3 images.");
+      toast.error("You can only upload a maximum of 3 images.");
     } else {
       setImages(files);
     }
@@ -100,8 +100,7 @@ const CreatePost = () => {
       setGuest("1");
       setIsAvailable(false);
       setPrice("");
-    } catch (error) {
-      console.error("Error creating post:", error);
+    } catch {
       toast.error("Failed to create post.");
     }
   };

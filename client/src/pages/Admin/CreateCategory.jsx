@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import Navbar from "./Navbar";
+import toast from "react-hot-toast";
 
 const CreateCategory = () => {
   const [categoryName, setCategoryName] = useState("");
@@ -14,8 +15,8 @@ const CreateCategory = () => {
         `${import.meta.env.VITE_BASE_URL}/api/category/get-category`
       );
       setCategories(response.data.category);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
+    } catch {
+      toast.error("Could not load categories. Please try again.");
     }
   };
 
@@ -43,8 +44,8 @@ const CreateCategory = () => {
       setCategoryName("");
       setEditId(null);
       fetchCategories(); // Refresh categories after adding/updating
-    } catch (error) {
-      console.error("Error adding/updating category:", error);
+    } catch {
+      toast.error("Could not save the category. Please try again.");
     }
   };
 
@@ -55,8 +56,8 @@ const CreateCategory = () => {
         `${import.meta.env.VITE_BASE_URL}/api/category/delete-category/${id}`
       );
       fetchCategories(); // Refresh categories after deletion
-    } catch (error) {
-      console.error("Error deleting category:", error);
+    } catch {
+      toast.error("Could not delete the category. Please try again.");
     }
   };
 

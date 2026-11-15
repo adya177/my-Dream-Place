@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import axios from "axios";
 import { useAuth } from "../../context/UserContext";
 import { FaPlus } from "react-icons/fa";
+import toast from "react-hot-toast";
 
 const ContributePost = () => {
   const [auth] = useAuth();
@@ -62,7 +63,7 @@ const ContributePost = () => {
       setFormData({ title: "", description: "", category: "", image: null });
       setImagePreview(null);
     } catch (error) {
-      console.error("Error submitting contribution:", error);
+      toast.error(error?.response?.data?.message || "Could not submit your contribution.");
       setMessage("Error submitting contribution. Please try again.");
     } finally {
       setLoading(false);
@@ -75,8 +76,8 @@ const ContributePost = () => {
         `${import.meta.env.VITE_BASE_URL}/api/category/get-category`
       );
       setCategory(response.data.category);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
+    } catch {
+      toast.error("Could not load categories. Please try again.");
     }
   };
 

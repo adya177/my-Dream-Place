@@ -1,9 +1,8 @@
-import React from "react";
 import { FaTrashAlt } from "react-icons/fa";
 import { useAuth } from "../context/UserContext";
 import { useCart } from "../context/Cart";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 
 const CartPage = () => {
   const [auth] = useAuth();
@@ -50,16 +49,16 @@ const CartPage = () => {
         setCart(myCart);
         localStorage.setItem("cart", JSON.stringify(myCart));
       }
-    } catch (error) {
-      console.log(error);
+    } catch {
+      toast.error("Could not remove this stay. Please try again.");
     }
   };
 
   const totalPrice = () => {
     try {
       return formatPrice(cart.reduce((total, item) => total + Number(item.price || 0) * nightsFor(item), 0));
-    } catch (error) {
-      console.log(error);
+    } catch {
+      toast.error("Could not calculate your total. Please try again.");
       return formatPrice(0);
     }
   };

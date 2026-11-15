@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import debounce from "lodash.debounce";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import PropTypes from "prop-types";
 import axios from "axios";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import {
   ArrowDown, BadgePercent, BriefcaseBusiness, Building2, ChevronRight,
   Copy, Crown, Gem, Heart, Landmark, Map, MapPin, Palmtree, Search, Sparkles, Star, Waves, LocateFixed,
@@ -16,6 +18,7 @@ import "swiper/css/pagination";
 import { useSearch } from "../context/Serach";
 import { Button } from "../components/ui/button";
 import DateRangePicker from "../components/Search/DateRangePicker";
+import SkeletonCard from "../components/SkeletonCard";
 const StayMap = lazy(() => import("../components/Search/StayMap"));
 
 const fallbackImage = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80";
@@ -91,11 +94,11 @@ HotelCard.propTypes = {
 };
 
 function SkeletonCards() {
-  return <div className="stay-grid" aria-label="Loading hotel listings">{Array.from({ length: 8 }, (_, item) => <div key={item} className="skeleton-card"><div className="skeleton-block skeleton-image"/><div className="skeleton-content"><div className="skeleton-block skeleton-line short"/><div className="skeleton-block skeleton-line"/><div className="skeleton-block skeleton-line medium"/></div></div>)}</div>;
+  return <div className="stay-grid" aria-label="Loading hotel listings"><SkeletonCard count={8}/></div>;
 }
 
 function MoreSkeletonCards() {
-  return <div className="stay-grid stay-grid--loading-more" aria-label="Loading more hotel listings">{Array.from({ length: 4 }, (_, item) => <div key={item} className="skeleton-card"><div className="skeleton-block skeleton-image"/><div className="skeleton-content"><div className="skeleton-block skeleton-line short"/><div className="skeleton-block skeleton-line"/><div className="skeleton-block skeleton-line medium"/></div></div>)}</div>;
+  return <div className="stay-grid stay-grid--loading-more" aria-label="Loading more hotel listings"><SkeletonCard count={4}/></div>;
 }
 
 const SearchResults = () => {
@@ -103,14 +106,12 @@ const SearchResults = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useSearch();
   const params = new URLSearchParams(location.search);
+  const searchKey = location.search || "";
   const [keyword, setKeyword] = useState(params.get("city") || params.get("keyword") || search.keyword || "");
   const [checkIn, setCheckIn] = useState(params.get("checkIn") || "");
   const [checkOut, setCheckOut] = useState(params.get("checkOut") || "");
   const [guests, setGuests] = useState(params.get("guests") || "2");
   const [rooms, setRooms] = useState(params.get("rooms") || "1");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchError, setSearchError] = useState("");
   const [minPrice, setMinPrice] = useState(params.get("minPrice") || "0");
   const [maxPrice, setMaxPrice] = useState(params.get("maxPrice") || "15000");
   const [stars, setStars] = useState(params.getAll("stars"));
@@ -119,14 +120,31 @@ const SearchResults = () => {
   const [sort, setSort] = useState(params.get("sort") || "rating_desc");
   const [mapView, setMapView] = useState(params.get("view") === "map");
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [stateName, setStateName] = useState(params.get("state") || "");
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const { ref: loadMoreRef, inView: loadMoreInView } = useInView({ rootMargin: "600px 0px", threshold: 0 });
+
+  const hotelsQuery = useInfiniteQuery({
+    queryKey: ["hotel-search", searchKey],
+    initialPageParam: 1,
+    queryFn: async ({ pageParam, signal }) => {
+      const requestParams = new URLSearchParams(searchKey);
+      requestParams.set("page", String(pageParam));
+      requestParams.set("limit", String(pageSize));
+      const { data } = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels?${requestParams.toString()}`, { signal });
+      return data;
+    },
+    getNextPageParam: (lastPage) => lastPage?.hasMore ? Number(lastPage.page || 1) + 1 : undefined,
+  });
+  const results = useMemo(() => (hotelsQuery.data?.pages || []).flatMap((pageData) => Array.isArray(pageData?.posts) ? pageData.posts : []), [hotelsQuery.data?.pages]);
+  const firstPage = hotelsQuery.data?.pages?.[0];
+  const loading = hotelsQuery.isLoading;
+  const loadingMore = hotelsQuery.isFetchingNextPage;
+  const hasMore = Boolean(hotelsQuery.hasNextPage);
+  const { fetchNextPage } = hotelsQuery;
+  const totalCount = Number(firstPage?.total || 0);
+  const searchError = hotelsQuery.isError ? "We couldn't load hotels right now. Please try again." : "";
 
   useEffect(() => {
     const current = new URLSearchParams(location.search);
@@ -143,55 +161,38 @@ const SearchResults = () => {
     setCategory(current.get("category") || "");
     setSort(current.get("sort") || "rating_desc");
     setMapView(current.get("view") === "map");
-    setPage(1);
   }, [location.search]);
 
   useEffect(() => {
-    if (loadMoreInView && hasMore && !loading && !loadingMore) setPage((current) => current + 1);
-  }, [loadMoreInView, hasMore, loading, loadingMore]);
+    if (firstPage) {
+      const current = new URLSearchParams(searchKey);
+      setSearch((previous) => ({ ...previous, keyword: current.get("city") || current.get("keyword") || "", results: firstPage.posts || [] }));
+    }
+  }, [firstPage, searchKey, setSearch]);
 
+  useEffect(() => {
+    if (hotelsQuery.isError) toast.error(searchError);
+  }, [hotelsQuery.isError, searchError]);
+
+  useEffect(() => {
+    if (loadMoreInView && hasMore && !loadingMore) fetchNextPage().catch(() => {});
+  }, [loadMoreInView, hasMore, loadingMore, fetchNextPage]);
+
+  const debouncedSuggestions = useMemo(() => debounce(async (query, onResults) => {
+    try {
+      const { data } = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels/suggestions`, { params: { q: query } });
+      onResults(Array.isArray(data?.suggestions) ? data.suggestions : []);
+    } catch {
+      onResults([]);
+    }
+  }, 300), []);
   useEffect(() => {
     const query = keyword.trim();
     if (!query) { setSuggestions([]); return undefined; }
     let active = true;
-    const timer = setTimeout(() => {
-      axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels/suggestions`, { params: { q: query } })
-        .then(({ data }) => { if (active) setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []); })
-        .catch(() => { if (active) setSuggestions([]); });
-    }, 140);
-    return () => { active = false; clearTimeout(timer); };
-  }, [keyword]);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(page === 1);
-    setLoadingMore(page > 1);
-    setSearchError("");
-    const requestParams = new URLSearchParams(location.search);
-    const destination = requestParams.get("city") || requestParams.get("keyword");
-    if (!destination) { requestParams.delete("city"); requestParams.delete("keyword"); }
-    requestParams.set("page", String(page));
-    requestParams.set("limit", String(pageSize));
-    axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels?${requestParams.toString()}`)
-      .then(({ data }) => {
-        if (!active) return;
-        const hotels = Array.isArray(data?.posts) ? data.posts : [];
-        setResults((previous) => page === 1 ? hotels : [...previous, ...hotels]);
-        setTotalCount(Number(data?.total || 0));
-        setHasMore(Boolean(data?.hasMore));
-        setSearch((previous) => ({ ...previous, keyword: destination || "", results: hotels }));
-      })
-      .catch((error) => {
-        console.error("Unable to load hotels:", error);
-        if (active) {
-          setSearchError("We couldn't load hotels right now. Please try again.");
-          if (page === 1) setResults([]);
-          toast.error("Hotel search is temporarily unavailable.");
-        }
-      })
-      .finally(() => { if (active) { setLoading(false); setLoadingMore(false); } });
-    return () => { active = false; };
-  }, [location.search, page, setSearch]);
+    debouncedSuggestions(query, (items) => { if (active) setSuggestions(items); });
+    return () => { active = false; debouncedSuggestions.cancel(); };
+  }, [keyword, debouncedSuggestions]);
 
   const blockedDates = useMemo(() => {
     const candidates = new Set(results.flatMap((stay) => stay.bookedDates || []));
@@ -215,7 +216,6 @@ const SearchResults = () => {
     if (values.category) query.set("category", values.category);
     if (values.sort !== "rating_desc") query.set("sort", values.sort);
     if (values.mapView) query.set("view", "map");
-    setPage(1);
     navigate(`/search${query.size ? `?${query.toString()}` : ""}`);
   };
 
@@ -230,7 +230,7 @@ const SearchResults = () => {
   };
   const copyOffer = async (code) => {
     try { await navigator.clipboard.writeText(code); toast.success(`${code} copied`); }
-    catch { toast.info(`Use code ${code} at checkout`); }
+    catch { toast(`Use code ${code} at checkout`); }
   };
 
   return <main className="search-page">
@@ -277,7 +277,7 @@ const SearchResults = () => {
               {mapView && <Suspense fallback={<div className="stay-map stay-map__loading" role="status">Loading map…</div>}><StayMap stays={results} checkIn={checkIn} checkOut={checkOut}/></Suspense>}
             </div>
             {loadingMore && <MoreSkeletonCards/>}
-            {hasMore && <div ref={loadMoreRef} className="load-more-trigger"><Button className="load-more" onClick={() => setPage((current) => current + 1)} disabled={loadingMore}>{loadingMore ? "Finding more stays…" : <>Load more hotels <ArrowDown size={16}/></>}</Button></div>}
+            {hasMore && <div ref={loadMoreRef} className="load-more-trigger"><Button className="load-more" onClick={() => fetchNextPage().catch(() => {})} disabled={loadingMore}>{loadingMore ? "Finding more stays…" : <>Load more hotels <ArrowDown size={16}/></>}</Button></div>}
           </> : <section className="search-empty search-empty--results"><div className="empty-art" aria-hidden="true"><svg viewBox="0 0 240 160"><circle cx="103" cy="72" r="39"/><path d="m132 101 34 34M34 137h172M65 81l22-22 17 17 20-25"/></svg></div><h2>No exact matches found</h2><p>Try another city or clear the filters to explore more stays.</p><Button className="clear-filters" onClick={resetFilters}>Clear filters</Button></section>}
         </section>
       </div>

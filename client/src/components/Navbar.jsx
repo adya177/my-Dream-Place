@@ -5,7 +5,7 @@ import { IoIosHeartEmpty } from "react-icons/io";
 import BrandLogo from "./BrandLogo";
 import { useAuth } from "../context/UserContext";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 
 const navItems = [["Home", "/"], ["Discover", "/discover"], ["Activities", "/activities"], ["About", "/about"], ["Contact", "/contact"]];
 

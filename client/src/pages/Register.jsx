@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 
 const Register = () => {
@@ -49,7 +49,6 @@ const Register = () => {
           : "Cannot reach the server. Start the backend and check its database connection.");
       setError(message);
       toast.error(message);
-      console.error(err);
     }
   };
 

@@ -3,6 +3,7 @@ import { useAuth } from "../../context/UserContext";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import axios from "axios";
 import Spinner from "../../components/Spinner";
+import toast from "react-hot-toast";
 
 export default function PrivateRoute() {
   const [ok, setOk] = useState(false);
@@ -24,8 +25,8 @@ export default function PrivateRoute() {
           }
         );
         if (isCurrent) setOk(res.data.ok);
-      } catch (error) {
-        console.error("Authorization check failed:", error.message);
+      } catch {
+        toast.error("Your session could not be verified. Please sign in again.");
         if (isCurrent) setOk(false);
       } finally {
         if (isCurrent) setChecking(false);

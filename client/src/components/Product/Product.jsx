@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FaStar } from "react-icons/fa";
 import { MdLocationOn } from "react-icons/md";
@@ -8,7 +9,7 @@ import axios from "axios";
 import RelatedProduct from "./RelatedProduct";
 import Spinner from "../Spinner";
 import { useCart } from "../../context/Cart";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import { useAuth } from "../../context/UserContext";
 
 const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -16,9 +17,25 @@ const tomorrowOf = (key) => { const date = new Date(`${key}T00:00:00`); date.set
 
 export default function Product() {
   const { slug } = useParams();
-  const [postDetails, setPostDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [relatedProducts, setRelatedProducts] = useState([]);
+  const propertyQuery = useQuery({
+    queryKey: ["property", slug],
+    enabled: Boolean(slug),
+    queryFn: async () => {
+      const { data } = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/post/get-post/${slug}`);
+      if (!data?.product) throw new Error("This stay could not be found.");
+      return data.product;
+    },
+  });
+  const postDetails = propertyQuery.data;
+  const relatedQuery = useQuery({
+    queryKey: ["related-properties", postDetails?._id, postDetails?.category?._id],
+    enabled: Boolean(postDetails?._id && postDetails?.category?._id),
+    queryFn: async () => {
+      const { data } = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/post/related-post/${postDetails?._id}/${postDetails?.category?._id}`);
+      return Array.isArray(data?.products) ? data.products : [];
+    },
+  });
+  const relatedProducts = relatedQuery.data || [];
   const [cart, setCart] = useCart();
   const [auth] = useAuth();
   const navigate = useNavigate();
@@ -28,23 +45,8 @@ export default function Product() {
   const checkOut = params.get("checkOut") || tomorrowOf(checkIn);
 
   useEffect(() => {
-    let active = true;
-    setLoading(true);
-    axios.get(`${import.meta.env.VITE_BASE_URL}/api/post/get-post/${slug}`)
-      .then(({ data }) => {
-        if (!active) return;
-        const product = data.product;
-        setPostDetails(product);
-        if (product?._id && product?.category?._id) {
-          axios.get(`${import.meta.env.VITE_BASE_URL}/api/post/related-post/${product._id}/${product.category._id}`)
-            .then((related) => { if (active) setRelatedProducts(related.data.products || []); })
-            .catch(() => {});
-        }
-      })
-      .catch((error) => console.error("Error fetching stay details:", error.message))
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [slug]);
+    if (propertyQuery.isError) toast.error(propertyQuery.error?.message || "Could not load this stay.");
+  }, [propertyQuery.isError, propertyQuery.error]);
 
   const handleCheckIn = () => {
     if (!auth?.token) { toast.error("Sign in to book this stay."); return navigate("/login"); }
@@ -59,7 +61,7 @@ export default function Product() {
     toast.success("Stay saved to your trips");
   };
 
-  if (loading) return <main className="hotel-details-page hotel-details-loading"><Spinner /></main>;
+  if (propertyQuery.isLoading) return <main className="hotel-details-page hotel-details-loading"><Spinner /></main>;
   if (!postDetails) return <main className="hotel-details-page mx-auto max-w-3xl px-5 py-20 text-center"><h1 className="text-2xl font-bold">We couldn&apos;t find this stay</h1><p className="mt-3 text-slate-400">It may have been removed or is temporarily unavailable.</p><button type="button" onClick={() => navigate("/search")} className="mt-6 rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white hover:bg-violet-500">Search stays</button></main>;
 
   const facilities = [...new Set([...(postDetails.nearArea || []), ...(postDetails.facilities || [])].flatMap((item) => item.split(",")).map((item) => item.trim()).filter(Boolean))];

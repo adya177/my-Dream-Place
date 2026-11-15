@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import { FaImage } from "react-icons/fa";
 import axios from "axios";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 
 const UpdatePost = () => {
@@ -38,8 +38,8 @@ const UpdatePost = () => {
       setFacilities(post.facilities);
       setGuest(post.guest);
       setHotelLocation(post.hotelLocation);
-    } catch (error) {
-      console.error("Error fetching post:", error);
+    } catch {
+      toast.error("Could not load this listing for editing.");
     }
   };
 
@@ -54,8 +54,8 @@ const UpdatePost = () => {
         `${import.meta.env.VITE_BASE_URL}/api/category/get-category`
       );
       setCategories(response.data.category);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
+    } catch {
+      toast.error("Could not load categories. Please try again.");
     }
   };
 
@@ -73,9 +73,9 @@ const UpdatePost = () => {
       (file) => !validImageTypes.includes(file.type)
     );
     if (invalidFiles.length > 0) {
-      toast.warn("Invalid file type. Please upload JPG, JPEG, or PNG images.");
+      toast.error("Invalid file type. Please upload JPG, JPEG, or PNG images.");
     } else if (files.length > 3) {
-      toast.warn("You can only upload a maximum of 3 images.");
+      toast.error("You can only upload a maximum of 3 images.");
     } else {
       setImages(files); // Store new images
     }
@@ -98,7 +98,7 @@ const UpdatePost = () => {
       formData.append("price", price);
       images.forEach((image) => formData.append("images", image));
 
-      const response = await axios.put(
+      await axios.put(
         `${import.meta.env.VITE_BASE_URL}/api/post/update-post/${id}`,
         formData,
         {
@@ -109,8 +109,7 @@ const UpdatePost = () => {
       );
       toast.success("Post updated successfully!");
       navigate("/posts");
-    } catch (error) {
-      console.error("Error updating post:", error);
+    } catch {
       toast.error("Failed to update post. Please try again.");
     }
   };

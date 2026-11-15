@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import PropTypes from "prop-types";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 
 const CheckoutForm = ({ total }) => {
   const stripe = useStripe();
@@ -29,7 +30,6 @@ const CheckoutForm = ({ total }) => {
     setLoading(false);
 
     if (error) {
-      console.error("Payment Error:", error);
       toast.error("Payment failed. Please check your card details.");
     } else if (paymentIntent.status === "succeeded") {
       toast.success("Payment successful!");
@@ -51,3 +51,4 @@ const CheckoutForm = ({ total }) => {
 };
 
 export default CheckoutForm;
+CheckoutForm.propTypes = { total: PropTypes.number.isRequired };

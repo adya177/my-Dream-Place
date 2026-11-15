@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 
 const SelectedCategory = () => {
   const [posts, setPosts] = useState([]);
@@ -23,8 +23,7 @@ const SelectedCategory = () => {
         }
       } catch (error) {
         if (isCurrent) {
-          console.error(error);
-          toast.error(error.message);
+          toast.error(error?.response?.data?.message || "Could not load this category.");
         }
       }
     };

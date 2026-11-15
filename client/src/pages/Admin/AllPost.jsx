@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import axios from "axios";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 const AllPost = () => {
@@ -16,8 +16,7 @@ const AllPost = () => {
       );
       setPosts(response.data.posts);
     } catch (error) {
-      console.log(error);
-      toast.error(error.message);
+      toast.error(error?.response?.data?.message || "Could not load listings.");
     }
   };
 
@@ -37,7 +36,7 @@ const AllPost = () => {
       <section className="min-w-0 flex-1 p-2 sm:p-5">
         <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Workspace</p><h1 className="mb-7 mt-2 text-3xl font-bold tracking-tight text-slate-900">All stays</h1>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {posts.map((post, index) => (
+          {posts.map((post) => (
             <article
               key={post._id}
               className="relative isolate flex min-h-72 w-full flex-col justify-end overflow-hidden rounded-2xl px-6 pb-6 pt-32 shadow-lg"

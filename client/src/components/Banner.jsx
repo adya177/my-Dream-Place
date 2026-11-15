@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { FaMapMarkerAlt, FaCompass, FaRegHeart, FaShieldAlt } from "react-icons/fa";
 import axios from "axios";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import BannerImage from "../assets/Rectangle 2.png";
 import { useSearch } from "../context/Serach";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +31,7 @@ const Banner = () => {
     event?.preventDefault();
     const keyword = (selectedKeyword || search.keyword || "").trim();
     if (!keyword) {
-      toast.info("Enter a destination or hotel name to search.");
+      toast("Enter a destination or hotel name to search.");
       return;
     }
     setSearch((current) => ({ ...current, keyword }));

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, CalendarDays, CreditCard, MapPin, ReceiptText, Sparkles, TicketCheck } from "lucide-react";
 import { useBook } from "../context/Booking";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "./User/Navbar";
@@ -20,8 +20,7 @@ const YourOrder = () => {
       await axios.patch(`${import.meta.env.VITE_BASE_URL}/api/booking/update-availability`, { postId, isAvailable: true });
       toast.success("Stay completed. The room is available again.");
       navigate("/thank-you");
-    } catch (error) {
-      console.error("Error during checkout:", error.message);
+    } catch {
       toast.error("Could not complete checkout. Please try again.");
     }
   };
