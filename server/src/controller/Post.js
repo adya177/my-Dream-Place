@@ -139,11 +139,12 @@ export const getAllPostController = async (req, res) => {
 export const searchHotelsController = async (req, res) => {
   try {
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
+    // Keep each response bounded even when callers request a very large page.
+    const limit = 20;
     const minPrice = Math.max(0, Number(req.query.minPrice) || 0);
     const maxPrice = Math.max(minPrice, Number(req.query.maxPrice) || 15000);
-    const city = String(req.query.city || req.query.keyword || "").trim();
-    const state = String(req.query.state || "").trim();
+    const city = String(req.query.city || req.query.keyword || "").trim().slice(0, 80);
+    const state = String(req.query.state || "").trim().slice(0, 80);
     const requestedCategory = String(req.query.category || "").trim();
     const rawAmenities = req.query.amenity ?? req.query.amenities ?? "";
     const amenities = (Array.isArray(rawAmenities) ? rawAmenities : String(rawAmenities).split(","))
@@ -156,7 +157,15 @@ export const searchHotelsController = async (req, res) => {
 
     if (city) {
       const escapedCity = city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.$or = [{ city: { $regex: escapedCity, $options: "i" } }, { locality: { $regex: escapedCity, $options: "i" } }, { name: { $regex: escapedCity, $options: "i" } }];
+      const locationMatcher = { $regex: escapedCity, $options: "i" };
+      query.$or = [
+        { city: locationMatcher },
+        { state: locationMatcher },
+        { country: locationMatcher },
+        { title: locationMatcher },
+        { name: locationMatcher },
+        { locality: locationMatcher },
+      ];
     }
     if (state) query.state = { $regex: state.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
     if (requestedCategory) query.category = requestedCategory;
@@ -173,28 +182,29 @@ export const searchHotelsController = async (req, res) => {
     };
     const sort = sortOptions[req.query.sort] || sortOptions.rating_desc;
 
+    const projection = "name city locality country state starRating guestRating reviewCount category pricePerNight originalPrice taxesAndFees images perks promoTag slug description guestCapacity postId isAvailable";
     const [matchedHotels, matchingTotal] = await Promise.all([
-      Hotel.aggregate([
-        { $match: query },
-        { $sort: { ...sort, _id: -1 } },
-        { $skip: (page - 1) * limit },
-        { $limit: limit },
-        { $project: { name: 1, city: 1, locality: 1, country: 1, state: 1, starRating: 1, guestRating: 1, reviewCount: 1, category: 1, pricePerNight: 1, originalPrice: 1, taxesAndFees: 1, images: 1, perks: 1, promoTag: 1, slug: 1, description: 1, guestCapacity: 1, postId: 1, isAvailable: 1 } },
-      ]),
+      Hotel.find(query)
+        .sort({ ...sort, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(20)
+        .select(projection)
+        .lean()
+        .maxTimeMS(10000),
       Hotel.countDocuments(query),
     ]);
     // Date availability is intentionally advisory for this demo. Keep the booked
     // dates in the response for the calendar, but don't let them remove search results.
     const hotels = [...matchedHotels];
-    const minimumResults = Math.min(15, Math.max(10, limit));
-    if (page === 1 && hotels.length < minimumResults) {
+    if (page === 1 && hotels.length < 20) {
       const alreadyIncluded = hotels.map(({ _id }) => _id);
-      const padding = await Hotel.aggregate([
-        { $match: { _id: { $nin: alreadyIncluded } } },
-        { $sample: { size: minimumResults - hotels.length } },
-        { $project: { name: 1, city: 1, locality: 1, country: 1, state: 1, starRating: 1, guestRating: 1, reviewCount: 1, category: 1, pricePerNight: 1, originalPrice: 1, taxesAndFees: 1, images: 1, perks: 1, promoTag: 1, slug: 1, description: 1, guestCapacity: 1, postId: 1, isAvailable: 1 } },
-      ]);
-      hotels.push(...padding);
+      const padding = await Hotel.find({ isAvailable: true, _id: { $nin: alreadyIncluded } })
+        .sort({ _id: -1 })
+        .limit(20)
+        .select(projection)
+        .lean()
+        .maxTimeMS(10000);
+      hotels.push(...padding.slice(0, 20 - hotels.length));
     }
     const postIds = hotels.map(({ postId }) => postId);
     const bookings = postIds.length ? await Booking.find({ post: { $in: postIds }, status: { $ne: "cancelled" } }).select("post bookingDate checkOutDate").lean() : [];

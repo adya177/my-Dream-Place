@@ -23,6 +23,7 @@ const StayMap = lazy(() => import("../components/Search/StayMap"));
 
 const fallbackImage = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80";
 const pageSize = 20;
+const hotelsApiBase = (import.meta.env.VITE_BASE_URL || "https://my-dream-place.onrender.com").replace(/\/+$/, "");
 const perks = ["Breakfast Included", "Free Cancellation", "Pool Access", "Free Wi-Fi", "Airport Transfer", "Spa Credit", "Ocean View"];
 const categories = [
   { label: "All stays", value: "", Icon: Building2 },
@@ -140,7 +141,7 @@ const SearchResults = () => {
       const requestParams = new URLSearchParams(searchKey);
       requestParams.set("page", String(pageParam));
       requestParams.set("limit", String(pageSize));
-      const { data } = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels?${requestParams.toString()}`, { signal });
+      const { data } = await axios.get(`${hotelsApiBase}/api/hotels?${requestParams.toString()}`, { signal });
       return data;
     },
     getNextPageParam: (lastPage) => lastPage?.hasMore ? Number(lastPage.page || 1) + 1 : undefined,
@@ -188,7 +189,7 @@ const SearchResults = () => {
 
   const debouncedSuggestions = useMemo(() => debounce(async (query, onResults) => {
     try {
-      const { data } = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/hotels/suggestions`, { params: { q: query } });
+      const { data } = await axios.get(`${hotelsApiBase}/api/hotels/suggestions`, { params: { q: query } });
       onResults(Array.isArray(data?.suggestions) ? data.suggestions : []);
     } catch {
       onResults([]);
