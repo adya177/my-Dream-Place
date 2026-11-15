@@ -5,7 +5,6 @@ import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import HomePage from "./pages/HomePage";
 import ProductDetails from "./pages/ProductDetails";
 import Login from "./pages/Login";
 import UserDashboard from "./pages/User/UserDashboard";
@@ -31,6 +30,7 @@ import DestinationGuide from "./pages/DestinationGuide.jsx/DestinationGuide.jsx"
 import contourPattern from "./assets/contour-pattern.svg";
 
 const SearchPage = lazy(() => import("./pages/SearchPage"));
+const HomePage = lazy(() => import("./pages/HomePage"));
 
 const PageIntro = ({ eyebrow, title, children }) => (
   <section className="bg-gradient-to-br from-blue-50 via-white to-sky-100 px-6 py-16 sm:py-20">
@@ -123,7 +123,7 @@ function App() {
       <ScrollToTop />
       <Navbar dark={pathname === "/"} />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Suspense fallback={<main className="home-page min-h-screen" aria-label="Loading homepage" />}><HomePage /></Suspense>} />
         <Route path="/discover" element={<DiscoverPage />} />
         <Route path="/activities" element={<ActivitiesPage />} />
         <Route path="/about" element={<AboutPage />} />
