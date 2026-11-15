@@ -56,6 +56,7 @@ const SearchPage = () => {
   const [stars, setStars] = useState(params.getAll("stars"));
   const [selectedAmenities, setSelectedAmenities] = useState(params.getAll("amenity"));
   const [mapView, setMapView] = useState(params.get("view") === "map");
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search).get("city") || new URLSearchParams(location.search).get("keyword") || "";
@@ -119,9 +120,9 @@ const SearchPage = () => {
   return <main className="search-page">
     <div className="search-shell">
       <p className="search-eyebrow">FIND YOUR STAY</p><h1>Explore places to stay</h1><p className="search-intro">Find the right place for your next getaway.</p>
-      <form onSubmit={updateUrl} className="search-pill">
+      <form onSubmit={updateUrl} className={`search-pill${calendarOpen ? " is-calendar-open" : ""}`}>
         <label><span>Destination</span><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="City or property" aria-label="Destination" /></label>
-        <DateRangePicker checkIn={checkIn} checkOut={checkOut} onChange={(start, end) => { setCheckIn(start); setCheckOut(end); }} disabledDates={blockedDates} />
+        <DateRangePicker checkIn={checkIn} checkOut={checkOut} onChange={(start, end) => { setCheckIn(start); setCheckOut(end); }} onOpenChange={setCalendarOpen} disabledDates={blockedDates} />
         <label><span>Guests</span><select value={guests} onChange={(event) => setGuests(event.target.value)} aria-label="Guests">{[1, 2, 3, 4, 5, 6].map((count) => <option key={count} value={count}>{count} {count === 1 ? "guest" : "guests"}</option>)}</select></label>
         <Button type="submit" aria-label="Search stays"><Search size={17} /><span>Search</span></Button>
       </form>

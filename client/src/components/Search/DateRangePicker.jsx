@@ -31,7 +31,7 @@ function Month({ month, monthIndex, checkIn, checkOut, preview, disabledDates, o
   </section>;
 }
 
-export default function DateRangePicker({ checkIn, checkOut, onChange, disabledDates = new Set() }) {
+export default function DateRangePicker({ checkIn, checkOut, onChange, onOpenChange, disabledDates = new Set() }) {
   const [open, setOpen] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
   const [preview, setPreview] = useState("");
@@ -44,13 +44,14 @@ export default function DateRangePicker({ checkIn, checkOut, onChange, disabledD
   }, [checkIn, monthOffset]);
   useEffect(() => {
     if (!open) return undefined;
-    const closeOnEscape = (event) => { if (event.key === "Escape") setOpen(false); };
+    const closeOnEscape = (event) => { if (event.key === "Escape") { setOpen(false); onOpenChange?.(false); } };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [onOpenChange, open]);
+  const close = () => { setOpen(false); onOpenChange?.(false); };
   const select = (value) => {
     if (!checkIn || checkOut || value <= checkIn) { onChange(value, ""); setPreview(""); return; }
-    onChange(checkIn, value); setPreview(""); setOpen(false);
+    onChange(checkIn, value); setPreview(""); close();
   };
   const pointerStart = (value, event) => { if (event.pointerType === "mouse" && event.button !== 0) return; dragStart.current = value; setPreview(value); };
   const pointerEnd = (value) => {
@@ -64,7 +65,7 @@ export default function DateRangePicker({ checkIn, checkOut, onChange, disabledD
     ? `${fromKey(checkIn).toLocaleDateString(undefined, { month: "short", day: "numeric" })} - ${fromKey(checkOut).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
     : checkIn ? `${fromKey(checkIn).toLocaleDateString(undefined, { month: "short", day: "numeric" })} - Add checkout` : "Add dates";
   return <div className="date-range-picker">
-    <button type="button" className="date-range-trigger" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((value) => !value)}><CalendarDays size={17} /><span><small>Dates</small><strong>{label}</strong></span></button>
-    {open && <><button type="button" className="range-picker-dismiss" aria-label="Close calendar" onClick={() => setOpen(false)} /><div className="range-calendar-popover" role="dialog" aria-label="Choose check-in and check-out dates"><div className="range-calendar-toolbar"><p>{checkIn && !checkOut ? "Choose a checkout date" : "Select your stay dates"}</p><div><button type="button" className="range-calendar-nav" aria-label="Previous month" disabled={new Date(monthBase.getFullYear(), monthBase.getMonth() - 1, 1) < new Date(new Date().getFullYear(), new Date().getMonth(), 1)} onClick={() => setMonthOffset((value) => value - 1)}><ChevronLeft size={18} /></button><button type="button" className="range-calendar-nav" aria-label="Next month" onClick={() => setMonthOffset((value) => value + 1)}><ChevronRight size={18} /></button><button type="button" className="range-calendar-close" aria-label="Close date picker" onClick={() => setOpen(false)}><X size={18} /></button></div></div><div className="range-calendar-months">{[0, 1].map((index) => { const month = new Date(monthBase.getFullYear(), monthBase.getMonth() + index, 1); return <Month key={month.toISOString()} month={month} monthIndex={index} checkIn={checkIn} checkOut={checkOut} preview={preview} disabledDates={disabledDates} onPick={select} onHover={(value) => { if (dragStart.current) setPreview(value); }} onPointerStart={pointerStart} onPointerEnd={pointerEnd} dragging={Boolean(dragStart.current)} />; })}</div><div className="range-calendar-legend"><span className="range-calendar-dot" />Dates unavailable for all stays in this search</div></div></>}
+    <button type="button" className="date-range-trigger" aria-expanded={open} aria-haspopup="dialog" onClick={() => { const nextOpen = !open; setOpen(nextOpen); onOpenChange?.(nextOpen); }}><CalendarDays size={17} /><span><small>Dates</small><strong>{label}</strong></span></button>
+    {open && <><button type="button" className="range-picker-dismiss" aria-label="Close calendar" onClick={close} /><div className="range-calendar-popover" role="dialog" aria-label="Choose check-in and check-out dates"><div className="range-calendar-toolbar"><p>{checkIn && !checkOut ? "Choose a checkout date" : "Select your stay dates"}</p><div><button type="button" className="range-calendar-nav" aria-label="Previous month" disabled={new Date(monthBase.getFullYear(), monthBase.getMonth() - 1, 1) < new Date(new Date().getFullYear(), new Date().getMonth(), 1)} onClick={() => setMonthOffset((value) => value - 1)}><ChevronLeft size={18} /></button><button type="button" className="range-calendar-nav" aria-label="Next month" onClick={() => setMonthOffset((value) => value + 1)}><ChevronRight size={18} /></button><button type="button" className="range-calendar-close" aria-label="Close date picker" onClick={close}><X size={18} /></button></div></div><div className="range-calendar-months">{[0, 1].map((index) => { const month = new Date(monthBase.getFullYear(), monthBase.getMonth() + index, 1); return <Month key={month.toISOString()} month={month} monthIndex={index} checkIn={checkIn} checkOut={checkOut} preview={preview} disabledDates={disabledDates} onPick={select} onHover={(value) => { if (dragStart.current) setPreview(value); }} onPointerStart={pointerStart} onPointerEnd={pointerEnd} dragging={Boolean(dragStart.current)} />; })}</div><div className="range-calendar-legend"><span className="range-calendar-dot" />Dates unavailable for all stays in this search</div></div></>}
   </div>;
 }
