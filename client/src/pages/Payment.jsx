@@ -26,6 +26,8 @@ const Payment = () => {
   const [book, setBook] = useBook();
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [customerName, setCustomerName] = useState(auth?.user?.name || "");
   const [address, setAddress] = useState({ line1: "", city: "", state: "", postalCode: "", country: "IN" });
 
@@ -38,7 +40,23 @@ const Payment = () => {
   }, [location.state]);
   const safeBookings = Array.isArray(book) ? book.filter(Boolean) : [];
   const total = items.reduce((sum, item) => sum + Number(item?.price || 0) * nightsFor(item), 0);
+  const payableTotal = total * (1 - Number(appliedCoupon?.percent || 0) / 100);
+  const discountMultiplier = 1 - Number(appliedCoupon?.percent || 0) / 100;
   const addressField = (key) => (event) => setAddress((current) => ({ ...current, [key]: event.target.value }));
+
+  const applyCoupon = (event) => {
+    event.preventDefault();
+    const code = couponCode.trim().toUpperCase();
+    const percent = { WELCOME10: 10, FESTIVAL20: 20 }[code];
+    if (!percent) {
+      setAppliedCoupon(null);
+      toast.error("That promo code is not valid.");
+      return;
+    }
+    setCouponCode(code);
+    setAppliedCoupon({ code, percent });
+    toast.success(`${percent}% discount applied.`);
+  };
 
 
   const handlePayment = async (event) => {
@@ -73,7 +91,7 @@ const Payment = () => {
         const savedBookings = [...safeBookings, ...items.map((item, index) => ({
           _id: "property:" + Date.now() + ":" + index,
           title: item.title,
-          amount: Number(item.price || 0) * nightsFor(item),
+          amount: Number(item.price || 0) * nightsFor(item) * discountMultiplier,
           customerName: auth?.user?.name || "",
           postId: item.postId,
           bookingDate: item.checkIn,
@@ -103,7 +121,7 @@ const Payment = () => {
     setLoading(true);
     try {
       const response = await axios.post(import.meta.env.VITE_BASE_URL + "/api/booking/create-payment-intent", {
-        amount: Math.round(total * 100), currency: "inr", description: "My Dream Place booking (" + items.length + " stay)", customerName,
+        amount: Math.round(payableTotal * 100), currency: "inr", description: "My Dream Place booking (" + items.length + " stay)" + (appliedCoupon ? `, promo ${appliedCoupon.code}` : ""), customerName,
         customerAddress: { ...address, country: address.country.trim().toUpperCase() },
       });
       const data = response.data;
@@ -125,7 +143,7 @@ const Payment = () => {
         });
         await axios.patch(import.meta.env.VITE_BASE_URL + "/api/booking/update-availability", { postId: item.postId, isAvailable: false });
       }));
-      const savedBookings = [...safeBookings, ...items.map((item, index) => ({ _id: result.paymentIntent.id + ":" + index, title: item.title, amount: Number(item.price || 0) * nightsFor(item), customerName, postId: item.postId, bookingDate: item.checkIn }))];
+      const savedBookings = [...safeBookings, ...items.map((item, index) => ({ _id: result.paymentIntent.id + ":" + index, title: item.title, amount: Number(item.price || 0) * nightsFor(item) * discountMultiplier, customerName, postId: item.postId, bookingDate: item.checkIn }))];
       setBook(savedBookings);
       localStorage.setItem("booking", JSON.stringify(savedBookings));
       toast.success("Payment and booking successful.");
@@ -191,20 +209,29 @@ const Payment = () => {
                 <div className="mt-3 rounded-xl border border-slate-300 px-4 py-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100"><CardElement options={{ style: { base: { color: "#0f172a", fontFamily: "Inter, system-ui, sans-serif", fontSize: "16px", "::placeholder": { color: "#94a3b8" } }, invalid: { color: "#dc2626" } } }} /></div>
               </> : <p className="mt-5 rounded-xl bg-blue-50 p-4 text-sm leading-6 text-blue-900">No payment is collected now. Your stay will be reserved, and payment will be due at the property.</p>}
               <button type="submit" disabled={(paymentMethod === "card" && !stripe) || loading} className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400">
-                {loading ? "Processing your booking…" : paymentMethod === "card" ? "Pay " + currency(total) : "Reserve and pay at property"}
+                {loading ? "Processing your booking…" : paymentMethod === "card" ? "Pay " + currency(payableTotal) : "Reserve and pay at property"}
               </button>
               <p className="mt-3 text-center text-xs text-slate-500">By continuing, you confirm your billing details are correct.</p>
             </section>
           </form>
 
 
-          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-6">
-            <h2 className="text-xl font-semibold text-slate-900">Booking summary</h2>
-            <div className="mt-5 divide-y divide-slate-100">
-              {items.map((item, index) => <div key={item.postId || index} className="flex justify-between gap-4 py-4 first:pt-0"><span className="font-medium text-slate-700">{item.title || "Your stay"}<small className="mt-1 block text-slate-500">{nightsFor(item)} {nightsFor(item) === 1 ? "night" : "nights"}</small></span><span className="shrink-0 font-semibold text-slate-900">{currency(Number(item.price || 0) * nightsFor(item))}</span></div>)}
+          <aside className="h-fit rounded-2xl border border-zinc-700 bg-[#14141c] p-6 text-zinc-100 shadow-xl lg:sticky lg:top-6">
+            <h2 className="text-xl font-semibold text-zinc-100">Booking summary</h2>
+            <div className="mt-5 divide-y divide-zinc-700">
+              {items.map((item, index) => <div key={item.postId || index} className="flex justify-between gap-4 py-4 first:pt-0"><span className="font-medium text-zinc-200">{item.title || "Your stay"}<small className="mt-1 block text-zinc-400">{nightsFor(item)} {nightsFor(item) === 1 ? "night" : "nights"}</small></span><span className="shrink-0 font-semibold text-zinc-100">{currency(Number(item.price || 0) * nightsFor(item))}</span></div>)}
             </div>
-            <div className="mt-2 flex justify-between border-t border-slate-200 pt-5 text-lg font-bold text-slate-900"><span>Total</span><span>{currency(total)}</span></div>
-            <p className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-800">{paymentMethod === "card" ? "Your reservation will be confirmed after the secure card payment completes." : "Your stay will be reserved now. Payment is due when you arrive."}</p>
+            <form onSubmit={applyCoupon} className="mt-5 rounded-xl border border-zinc-700 bg-zinc-900/80 p-3.5">
+              <label htmlFor="checkout-coupon" className="mb-2 block text-xs font-semibold uppercase tracking-[.12em] text-zinc-300">Promo code</label>
+              <div className="flex gap-2">
+                <input id="checkout-coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="Enter code" autoComplete="off" maxLength={32} className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/50" />
+                <button type="submit" className="rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2 focus:ring-offset-zinc-900">Apply</button>
+              </div>
+              {appliedCoupon && <p className="mt-2 text-xs font-medium text-emerald-300">{appliedCoupon.code} · {appliedCoupon.percent}% off applied</p>}
+            </form>
+            {appliedCoupon && <div className="mt-4 flex justify-between text-sm text-emerald-300"><span>Promo discount ({appliedCoupon.percent}%)</span><span>−{currency(total - payableTotal)}</span></div>}
+            <div className="mt-2 flex justify-between border-t border-zinc-700 pt-5 text-lg font-bold text-zinc-100"><span>Total</span><span>{currency(payableTotal)}</span></div>
+            <p className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-400/10 p-4 text-sm leading-6 text-emerald-200">{paymentMethod === "card" ? "Your reservation will be confirmed after the secure card payment completes." : "Your stay will be reserved now. Payment is due when you arrive."}</p>
           </aside>
         </div>
       </div>
