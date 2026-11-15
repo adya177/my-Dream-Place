@@ -11,7 +11,6 @@ import authRoutes from "./src/routes/User.js";
 import postRoutes from "./src/routes/Post.js";
 import categoryRoutes from "./src/routes/Category.js";
 import bookingRoutes from "./src/routes/Booking.js";
-import { seedHotels } from "./scripts/seedHotels.js";
 import { getHotelSuggestionsController, searchHotelsController } from "./src/controller/Post.js";
 
 const app = express();
@@ -76,9 +75,8 @@ const PORT = process.env.PORT || 3000;
 const connectWithRetry = async () => {
   try {
     await connectToDb();
-    await seedHotels();
   } catch (error) {
-    console.error(`MongoDB setup is not ready: ${error.message}`);
+    console.error(`MongoDB connection is not ready: ${error.message}`);
     const retryTimer = setTimeout(connectWithRetry, 10000);
     retryTimer.unref();
   }
