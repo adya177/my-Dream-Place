@@ -28,6 +28,7 @@ const Payment = () => {
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState("");
   const [customerName, setCustomerName] = useState(auth?.user?.name || "");
   const [address, setAddress] = useState({ line1: "", city: "", state: "", postalCode: "", country: "IN" });
 
@@ -40,20 +41,23 @@ const Payment = () => {
   }, [location.state]);
   const safeBookings = Array.isArray(book) ? book.filter(Boolean) : [];
   const total = items.reduce((sum, item) => sum + Number(item?.price || 0) * nightsFor(item), 0);
-  const payableTotal = total * (1 - Number(appliedCoupon?.percent || 0) / 100);
-  const discountMultiplier = 1 - Number(appliedCoupon?.percent || 0) / 100;
+  const discountPercent = Number(appliedCoupon?.percent || 0);
+  const finalPrice = total * (1 - discountPercent / 100);
+  const discountMultiplier = 1 - discountPercent / 100;
   const addressField = (key) => (event) => setAddress((current) => ({ ...current, [key]: event.target.value }));
 
   const applyCoupon = (event) => {
     event.preventDefault();
     const code = couponCode.trim().toUpperCase();
-    const percent = { DREAM25: 25, WEEKEND25: 25, DREAMBANK: 10 }[code];
+    const percent = { DREAM25: 25, WEEKEND25: 25, DREAMBANK: 20 }[code];
     if (!percent) {
       setAppliedCoupon(null);
-      toast.error("That promo code is not valid.");
+      setCouponError("Invalid promo code");
+      toast.error("Invalid promo code");
       return;
     }
     setCouponCode(code);
+    setCouponError("");
     setAppliedCoupon({ code, percent });
     toast.success(`${percent}% discount applied.`);
   };
@@ -121,7 +125,7 @@ const Payment = () => {
     setLoading(true);
     try {
       const response = await axios.post(import.meta.env.VITE_BASE_URL + "/api/booking/create-payment-intent", {
-        amount: Math.round(payableTotal * 100), currency: "inr", description: "My Dream Place booking (" + items.length + " stay)" + (appliedCoupon ? `, promo ${appliedCoupon.code}` : ""), customerName,
+        amount: Math.round(finalPrice * 100), currency: "inr", description: "My Dream Place booking (" + items.length + " stay)" + (appliedCoupon ? `, promo ${appliedCoupon.code}` : ""), customerName,
         customerAddress: { ...address, country: address.country.trim().toUpperCase() },
       });
       const data = response.data;
@@ -209,7 +213,7 @@ const Payment = () => {
                 <div className="mt-3 rounded-xl border border-slate-300 px-4 py-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100"><CardElement options={{ style: { base: { color: "#0f172a", fontFamily: "Inter, system-ui, sans-serif", fontSize: "16px", "::placeholder": { color: "#94a3b8" } }, invalid: { color: "#dc2626" } } }} /></div>
               </> : <p className="mt-5 rounded-xl bg-blue-50 p-4 text-sm leading-6 text-blue-900">No payment is collected now. Your stay will be reserved, and payment will be due at the property.</p>}
               <button type="submit" disabled={(paymentMethod === "card" && !stripe) || loading} className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-600 px-6 py-4 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400">
-                {loading ? "Processing your booking…" : paymentMethod === "card" ? "Pay " + currency(payableTotal) : "Reserve and pay at property"}
+                {loading ? "Processing your booking…" : paymentMethod === "card" ? "Pay " + currency(finalPrice) : "Reserve and pay at property"}
               </button>
               <p className="mt-3 text-center text-xs text-slate-500">By continuing, you confirm your billing details are correct.</p>
             </section>
@@ -224,14 +228,15 @@ const Payment = () => {
             <form onSubmit={applyCoupon} className="mt-5 rounded-xl border border-zinc-700 bg-zinc-900/80 p-3.5">
               <label htmlFor="checkout-coupon" className="mb-2 block text-xs font-semibold uppercase tracking-[.12em] text-zinc-300">Promo code</label>
               <div className="flex gap-2">
-                <input id="checkout-coupon" value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="Enter code" autoComplete="off" maxLength={32} className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/50" />
+                <input id="checkout-coupon" value={couponCode} onChange={(event) => { setCouponCode(event.target.value); setCouponError(""); }} placeholder="Enter code" autoComplete="off" maxLength={32} aria-invalid={Boolean(couponError)} aria-describedby={couponError ? "checkout-coupon-error" : undefined} className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/50" />
                 <button type="submit" className="rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2 focus:ring-offset-zinc-900">Apply</button>
               </div>
+              {couponError && <p id="checkout-coupon-error" role="alert" className="mt-2 text-xs font-medium text-rose-300">{couponError}</p>}
               {appliedCoupon && <p className="mt-2 text-xs font-medium text-emerald-300">{appliedCoupon.code} · {appliedCoupon.percent}% off applied</p>}
-              {!appliedCoupon && <p className="mt-2 text-[11px] text-zinc-500">Try DREAM25, WEEKEND25, or DREAMBANK.</p>}
+              {!appliedCoupon && !couponError && <p className="mt-2 text-[11px] text-zinc-500">Try DREAM25, WEEKEND25, or DREAMBANK.</p>}
             </form>
-            {appliedCoupon && <div className="mt-4 flex justify-between text-sm text-emerald-300"><span>Promo discount ({appliedCoupon.percent}%)</span><span>−{currency(total - payableTotal)}</span></div>}
-            <div className="mt-2 flex justify-between border-t border-zinc-700 pt-5 text-lg font-bold text-zinc-100"><span>Total</span><span>{currency(payableTotal)}</span></div>
+            {appliedCoupon && <div className="mt-4 flex justify-between text-sm text-emerald-300"><span>Promo discount ({appliedCoupon.percent}%)</span><span>−{currency(total - finalPrice)}</span></div>}
+            <div className="mt-2 flex justify-between border-t border-zinc-700 pt-5 text-lg font-bold text-zinc-100"><span>Total</span><span className="flex items-center gap-2">{appliedCoupon && <del className="text-sm font-medium text-zinc-500">{currency(total)}</del>}<span>{currency(finalPrice)}</span></span></div>
             <p className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-400/10 p-4 text-sm leading-6 text-emerald-200">{paymentMethod === "card" ? "Your reservation will be confirmed after the secure card payment completes." : "Your stay will be reserved now. Payment is due when you arrive."}</p>
           </aside>
         </div>
