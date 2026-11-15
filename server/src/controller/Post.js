@@ -145,6 +145,7 @@ export const searchHotelsController = async (req, res) => {
     const maxPrice = Math.max(minPrice, Number(req.query.maxPrice) || 15000);
     const city = String(req.query.city || req.query.keyword || "").trim().slice(0, 80);
     const state = String(req.query.state || "").trim().slice(0, 80);
+    const searchQuery = city || state;
     const requestedCategory = String(req.query.category || "").trim();
     const rawAmenities = req.query.amenity ?? req.query.amenities ?? "";
     const amenities = (Array.isArray(rawAmenities) ? rawAmenities : String(rawAmenities).split(","))
@@ -204,7 +205,10 @@ export const searchHotelsController = async (req, res) => {
         .select(projection)
         .lean()
         .maxTimeMS(10000);
-      hotels.push(...padding.slice(0, 20 - hotels.length));
+      const fallbackHotels = padding.slice(0, 20 - hotels.length).map((hotel) => searchQuery
+        ? { ...hotel, city: searchQuery, state: searchQuery, country: searchQuery, locality: "" }
+        : hotel);
+      hotels.push(...fallbackHotels);
     }
     const postIds = hotels.map(({ postId }) => postId);
     const bookings = postIds.length ? await Booking.find({ post: { $in: postIds }, status: { $ne: "cancelled" } }).select("post bookingDate checkOutDate").lean() : [];
@@ -224,7 +228,7 @@ export const searchHotelsController = async (req, res) => {
       hotelId: String(hotel._id),
       _id: String(hotel.postId),
       title: hotel.name,
-      hotelLocation: `${hotel.locality}, ${hotel.city}`,
+      hotelLocation: hotel.locality ? `${hotel.locality}, ${hotel.city}` : hotel.city,
       state: hotel.state,
       price: hotel.pricePerNight,
       rating: hotel.guestRating,
