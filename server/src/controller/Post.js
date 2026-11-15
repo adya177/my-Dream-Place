@@ -3,6 +3,7 @@ import Post from "../models/Post.js";
 import slug from "slugify";
 import Category from "../models/Category.js";
 import mongoose from "mongoose";
+import Booking from "../models/Booking.js";
 
 export const createPostController = async (req, res) => {
   try {
