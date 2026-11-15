@@ -12,34 +12,56 @@ const Login = ({ expectedRole = "user" }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const loginWith = async (loginEmail, loginPassword) => {
+    const res = await axios.post(
+      import.meta.env.VITE_BASE_URL + "/auth/api/login",
+      { email: loginEmail, password: loginPassword }
+    );
+    if (!res.data?.token || !res.data?.user) {
+      throw new Error("The server returned an incomplete login response");
+    }
+    const accountRole = res.data.user.role || "user";
+    if (accountRole !== expectedRole) {
+      const message = expectedRole === "admin"
+        ? "This account does not have administrator access. Sign in with an admin account."
+        : "This is an admin account. Use the Admin sign-in option instead.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
+    toast.success("Login successful");
+    setAuth({ ...auth, user: res.data.user, token: res.data.token });
+    localStorage.setItem("auth", JSON.stringify(res.data));
+    navigate(expectedRole === "admin" ? "/admin/details" : location.state?.from?.pathname || location.state || "/");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
     try {
-      const res = await axios.post(
-        import.meta.env.VITE_BASE_URL + "/auth/api/login",
-        { email, password }
-      );
-      if (!res.data?.token || !res.data?.user) {
-        throw new Error("The server returned an incomplete login response");
-      }
-      const accountRole = res.data.user.role || "user";
-      if (accountRole !== expectedRole) {
-        const message = expectedRole === "admin"
-          ? "This account does not have administrator access. Sign in with an admin account."
-          : "This is an admin account. Use the Admin sign-in option instead.";
-        setError(message);
-        toast.error(message);
-        return;
-      }
-      toast.success("Login successful");
-      setAuth({ ...auth, user: res.data.user, token: res.data.token });
-      localStorage.setItem("auth", JSON.stringify(res.data));
-      navigate(expectedRole === "admin" ? "/admin/details" : location.state?.from?.pathname || location.state || "/");
+      await loginWith(email, password);
     } catch (error) {
       const message = error.response?.data?.error ||
         (error.response
           ? error.message
           : "Cannot reach the server. Start the backend and check its database connection.");
+      setError(message);
+      toast.error(message);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
+    const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
+    if (!demoEmail || !demoPassword) {
+      toast.info("Add VITE_DEMO_EMAIL and VITE_DEMO_PASSWORD to enable demo login.");
+      return;
+    }
+    setError(null);
+    try {
+      await loginWith(demoEmail, demoPassword);
+    } catch (error) {
+      const message = error.response?.data?.error || "Demo login is unavailable. Check the configured demo account.";
       setError(message);
       toast.error(message);
     }
@@ -66,6 +88,7 @@ const Login = ({ expectedRole = "user" }) => {
               <div className="flex items-center justify-between gap-3 text-sm"><label className="flex items-center gap-2 text-slate-600"><input type="checkbox" className="h-4 w-4 rounded accent-blue-600" />Keep me signed in</label><Link to="/contact" className="font-medium text-blue-700 hover:text-blue-900">Need help?</Link></div>
               <button type="submit" className="w-full rounded-xl bg-blue-600 px-5 py-3.5 font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:ring-4 focus-visible:ring-blue-200">Sign in</button>
             </form>
+            {expectedRole === "user" && <div className="mt-5"><div className="mb-4 flex items-center gap-3 text-xs font-medium text-slate-400"><span className="h-px flex-1 bg-slate-200" />OR<span className="h-px flex-1 bg-slate-200" /></div><button type="button" onClick={handleDemoLogin} className="w-full rounded-xl border border-blue-200 bg-blue-50 px-5 py-3.5 font-semibold text-blue-700 transition hover:bg-blue-100">Login as Demo User</button></div>}
             {expectedRole === "user" && <p className="mt-7 text-center text-sm text-slate-600">New to My Dream Place? <Link to="/register" className="font-semibold text-blue-700 hover:text-blue-900">Create an account</Link></p>}
           </div>
         </div>

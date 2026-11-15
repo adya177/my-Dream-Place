@@ -1,115 +1,133 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import axios from "axios";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import FilterSidebar from "../components/Serach/FilterSidebar";
-import ProductList from "../components/Serach/ProductList";
+import { ChevronLeft, ChevronRight, Map, MapPin, Search } from "lucide-react";
+import { motion } from "framer-motion";
 import { useSearch } from "../context/Serach";
+import { Button } from "../components/ui/button";
 
+const fallbackImage = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80";
+const today = new Date().toISOString().slice(0, 10);
+const amenities = ["Pool", "Wi-Fi", "Parking"];
+const cardGridMotion = { hidden: {}, show: { transition: { staggerChildren: 0.075 } } };
+const cardItemMotion = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] } } };
+
+function StayCard({ stay }) {
+  const images = stay.images?.length ? stay.images : [fallbackImage];
+  const [imageIndex, setImageIndex] = useState(0);
+  const move = (event, amount) => {
+    event.preventDefault(); event.stopPropagation();
+    setImageIndex((index) => (index + amount + images.length) % images.length);
+  };
+  return <article className="stay-card group">
+    <div className="stay-card__image"><Link to={`/product/${stay.slug}`} tabIndex={-1} aria-hidden="true" className="stay-card__image-link"><img src={images[imageIndex]} alt="" onError={(event) => { event.currentTarget.src = fallbackImage; }} /></Link>
+      {images.length > 1 && <><button aria-label="Previous photo" className="stay-card__arrow stay-card__arrow--left" onClick={(event) => move(event, -1)}><ChevronLeft size={18} /></button><button aria-label="Next photo" className="stay-card__arrow stay-card__arrow--right" onClick={(event) => move(event, 1)}><ChevronRight size={18} /></button><span className="stay-card__count">{imageIndex + 1} / {images.length}</span></>}
+    </div>
+    <Link to={`/product/${stay.slug}`} className="stay-card__body"><p className="stay-card__location"><MapPin size={15} strokeWidth={1.8} />{stay.hotelLocation || "Destination stay"}</p><h3>{stay.title}</h3><p className="stay-card__description">{stay.description || "A comfortable place to make your trip memorable."}</p><p className="stay-card__price">${Number(stay.price || 0).toLocaleString()} <span>/ night</span></p></Link>
+  </article>;
+}
+StayCard.propTypes = { stay: PropTypes.shape({ images: PropTypes.arrayOf(PropTypes.string), slug: PropTypes.string, title: PropTypes.string, hotelLocation: PropTypes.string, description: PropTypes.string, price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }).isRequired };
+
+function SkeletonCards() {
+  return <div className="stay-grid" aria-label="Loading stays">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="skeleton-card"><div className="skeleton-block skeleton-image"/><div className="skeleton-content"><div className="skeleton-block skeleton-line short"/><div className="skeleton-block skeleton-line"/><div className="skeleton-block skeleton-line medium"/></div></div>)}</div>;
+}
 
 const SearchPage = () => {
-  const [search, setSearch] = useSearch();
-  const [searchParams] = useSearchParams();
-  const [filteredResults, setFilteredResults] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [, setSearch] = useSearch();
+  const params = new URLSearchParams(location.search);
+  const [keyword, setKeyword] = useState(params.get("city") || params.get("keyword") || "");
+  const [checkIn, setCheckIn] = useState(params.get("checkIn") || "");
+  const [checkOut, setCheckOut] = useState(params.get("checkOut") || "");
+  const [guests, setGuests] = useState(params.get("guests") || "2");
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const results = filteredResults ?? search.results ?? [];
-  const guideSlug = (search.keyword || "").trim().toLowerCase().replace(/ /g, "-").replace("amalfi-coast", "amalfi");
-  const hasDestinationGuide = ["bali", "kyoto", "paris", "santorini", "maldives", "sydney", "tokyo", "amalfi"].includes(guideSlug);
-
-
-  const findStays = async (keyword) => {
-    const trimmed = keyword.trim();
-    if (!trimmed) {
-      toast.info("Enter a destination or hotel name to search.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    setFilteredResults(null);
-    try {
-      const response = await axios.get(import.meta.env.VITE_BASE_URL + "/api/booking/search/" + encodeURIComponent(trimmed));
-      const stays = Array.isArray(response.data) ? response.data : [];
-      setSearch((current) => ({ ...current, keyword: trimmed, results: stays }));
-    } catch (requestError) {
-      const message = requestError.response?.data?.message || "We could not load stays right now. Please try again.";
-      setSearch((current) => ({ ...current, keyword: trimmed, results: [] }));
-      setError(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const [searchError, setSearchError] = useState("");
+  const [minPrice, setMinPrice] = useState(params.get("minPrice") || "0");
+  const [maxPrice, setMaxPrice] = useState(params.get("maxPrice") || "5000");
+  const [stars, setStars] = useState(params.getAll("stars"));
+  const [selectedAmenities, setSelectedAmenities] = useState(params.getAll("amenity"));
+  const [mapView, setMapView] = useState(params.get("view") === "map");
 
   useEffect(() => {
-    const keyword = searchParams.get("keyword");
-    if (!keyword) return;
-    setSearch((current) => ({ ...current, keyword }));
-    findStays(keyword);
-  }, [searchParams]);
-
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    findStays(search.keyword || "");
-  };
-
-
-  const applyFilters = async (filters) => {
+    const query = new URLSearchParams(location.search).get("city") || new URLSearchParams(location.search).get("keyword") || "";
+    setKeyword(query);
+    setCheckIn(new URLSearchParams(location.search).get("checkIn") || "");
+    setCheckOut(new URLSearchParams(location.search).get("checkOut") || "");
+    setGuests(new URLSearchParams(location.search).get("guests") || "2");
+    setMinPrice(new URLSearchParams(location.search).get("minPrice") || "0");
+    setMaxPrice(new URLSearchParams(location.search).get("maxPrice") || "5000");
+    setStars(new URLSearchParams(location.search).getAll("stars"));
+    setSelectedAmenities(new URLSearchParams(location.search).getAll("amenity"));
+    setMapView(new URLSearchParams(location.search).get("view") === "map");
+    if (!query.trim()) { setResults([]); return; }
+    let active = true;
     setLoading(true);
-    setError("");
-    try {
-      const response = await axios.post(import.meta.env.VITE_BASE_URL + "/api/post/product-filters", filters);
-      const stays = response.data?.success ? (response.data.products ?? []) : [];
-      setFilteredResults(stays);
-    } catch (filterError) {
-      const message = filterError.response?.data?.message || "Those filters could not be applied. Please try again.";
-      setError(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
+    setSearchError("");
+    axios.get(`${import.meta.env.VITE_BASE_URL}/api/booking/search/${encodeURIComponent(query.trim())}`)
+      .then(({ data }) => { if (active) { const stays = Array.isArray(data) ? data : []; setResults(stays); setSearch((prev) => ({ ...prev, keyword: query, results: stays })); } })
+      .catch((error) => { console.error("Unable to search stays:", error); if (active) { const message = "We couldn't load stays right now. Please try again."; setResults([]); setSearchError(message); toast.error(message); } })
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [location.search, setSearch]);
+
+  const visible = useMemo(() => results.filter((stay) => {
+    const price = Number(stay.price || 0);
+    const text = `${stay.description || ""} ${(stay.amenities || stay.facilities || []).join(" ")}`.toLowerCase();
+    const starValue = Number(stay.rating || stay.stars || 0);
+    return price >= Number(minPrice || 0) && price <= Number(maxPrice || Infinity) &&
+      (!stars.length || (starValue > 0 && stars.some((star) => starValue >= Number(star)))) &&
+      selectedAmenities.every((amenity) => text.includes(amenity.toLowerCase()));
+  }), [results, minPrice, maxPrice, stars, selectedAmenities]);
+
+  const updateUrl = (event) => {
+    event?.preventDefault();
+    const query = new URLSearchParams();
+    if (keyword.trim()) query.set("city", keyword.trim());
+    if (checkIn) query.set("checkIn", checkIn);
+    if (checkOut) query.set("checkOut", checkOut);
+    if (guests) query.set("guests", guests);
+    if (minPrice !== "0") query.set("minPrice", minPrice);
+    if (maxPrice !== "5000") query.set("maxPrice", maxPrice);
+    stars.forEach((star) => query.append("stars", star));
+    selectedAmenities.forEach((amenity) => query.append("amenity", amenity));
+    if (mapView) query.set("view", "map");
+    navigate(`/search?${query.toString()}`);
   };
 
+  const resetFilters = () => { setMinPrice("0"); setMaxPrice("5000"); setStars([]); setSelectedAmenities([]); };
+  const toggleList = (list, setter, item) => setter(list.includes(item) ? list.filter((value) => value !== item) : [...list, item]);
 
-  return (
-    <main className="min-h-[55vh] bg-slate-50 px-4 py-10 sm:px-6 lg:py-14">
-      <div className="mx-auto max-w-7xl">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-600">Find your stay</p>
-          <h1 className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Explore places to stay</h1>
-          <p className="mt-3 leading-7 text-slate-600">Search by destination or property name, then narrow down the results to match your trip.</p>
-        </div>
-        <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row">
-          <label className="sr-only" htmlFor="stay-search">Destination or property</label>
-          <input id="stay-search" type="search" placeholder="Where do you want to go?" value={search.keyword || ""} onChange={(event) => setSearch((current) => ({ ...current, keyword: event.target.value }))} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
-          <button type="submit" disabled={loading} className="rounded-xl bg-blue-600 px-7 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-wait disabled:bg-blue-400">{loading ? "Searching…" : "Search stays"}</button>
-        </form>
+  return <main className="search-page">
+    <div className="search-shell">
+      <p className="search-eyebrow">FIND YOUR STAY</p><h1>Explore places to stay</h1><p className="search-intro">Find the right place for your next getaway.</p>
+      <form onSubmit={updateUrl} className="search-pill">
+        <label><span>Destination</span><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="City or property" aria-label="Destination" /></label>
+        <label><span>Check in</span><input type="date" min={today} value={checkIn} onChange={(event) => { const nextDate = event.target.value; setCheckIn(nextDate); if (checkOut && checkOut <= nextDate) setCheckOut(""); }} aria-label="Check-in date" /></label>
+        <label><span>Check out</span><input type="date" min={checkIn || today} value={checkOut} onChange={(event) => setCheckOut(event.target.value)} aria-label="Check-out date" /></label>
+        <label><span>Guests</span><select value={guests} onChange={(event) => setGuests(event.target.value)} aria-label="Guests">{[1, 2, 3, 4, 5, 6].map((count) => <option key={count} value={count}>{count} {count === 1 ? "guest" : "guests"}</option>)}</select></label>
+        <Button type="submit" aria-label="Search stays"><Search size={17} /><span>Search</span></Button>
+      </form>
 
+      {!keyword && !loading ? <section className="search-empty"><div className="empty-art" aria-hidden="true"><svg viewBox="0 0 240 160"><path d="M22 135h196M42 135V77l78-45 78 45v58M72 135V93h35v42M138 85h35v28h-35z"/><circle cx="190" cy="34" r="14"/></svg></div><h2>Where would you like to go?</h2><p>Enter a city or property above to discover your next stay.</p></section> : null}
+      {searchError && <p role="alert" className="search-error">{searchError}</p>}
 
-        {error && <div role="alert" className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{error}</div>}
-        <div className="mt-8">
-          {loading ? (
-            <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center text-slate-600">Finding stays for you…</div>
-          ) : results.length ? (
-            <div className="grid gap-7 lg:grid-cols-[250px_minmax(0,1fr)]">
-              <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><FilterSidebar applyFilters={applyFilters} /></aside>
-              <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"><ProductList products={results} /></section>
-            </div>
-          ) : (
-            <section className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-700" aria-hidden="true">⌕</div>
-              <h2 className="mt-5 text-2xl font-semibold text-slate-900">{search.keyword ? "No stays found for “" + search.keyword + "”" : "Start with a destination"}</h2>
-              <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">{search.keyword ? "Try another city or hotel name, or explore our travel inspiration while new stays are being added." : "Enter a destination or property name above to see matching stays."}</p>
-              <div className="mt-6 flex flex-wrap justify-center gap-3"><Link to="/discover" className="inline-flex rounded-xl border border-blue-200 px-5 py-3 font-semibold text-blue-700 transition hover:bg-blue-50">Explore destinations</Link>{search.keyword && hasDestinationGuide && <Link to={"/destination/" + guideSlug} className="inline-flex rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700">Read the {search.keyword} guide <span className="ml-2" aria-hidden="true">→</span></Link>}</div>
-            </section>
-          )}
-        </div>
-      </div>
-    </main>
-  );
+      {keyword && <div className="search-results-layout">
+        <aside className="filter-panel"><div className="filter-heading"><h2>Filters</h2><button type="button" onClick={resetFilters}>Clear</button></div>
+          <div className="filter-section"><h3>Price per night</h3><label className="range-label">${Number(minPrice).toLocaleString()} – ${Number(maxPrice).toLocaleString()}</label><input type="range" min="0" max="5000" step="50" value={minPrice} onChange={(event) => setMinPrice(Math.min(Number(event.target.value), Number(maxPrice) - 50).toString())}/><input type="range" min="50" max="5000" step="50" value={maxPrice} onChange={(event) => setMaxPrice(Math.max(Number(event.target.value), Number(minPrice) + 50).toString())}/></div>
+          <div className="filter-section"><h3>Guest rating</h3>{[4, 3].map((rating) => <label className="filter-option" key={rating}><input type="checkbox" checked={stars.includes(String(rating))} onChange={() => toggleList(stars, setStars, String(rating))}/>{rating}+ stars</label>)}</div>
+          <div className="filter-section"><h3>Amenities</h3>{amenities.map((amenity) => <label className="filter-option" key={amenity}><input type="checkbox" checked={selectedAmenities.includes(amenity)} onChange={() => toggleList(selectedAmenities, setSelectedAmenities, amenity)}/>{amenity}</label>)}</div>
+          <Button type="button" className="apply-filters" onClick={() => updateUrl()}>Apply filters</Button>
+        </aside>
+        <section className="results-column"><div className="results-heading"><div><h2>Stays for “{keyword}”</h2><p>{loading ? "Finding places…" : `${visible.length} ${visible.length === 1 ? "place" : "places"} to explore`}</p></div><Button variant="outline" className={`map-toggle ${mapView ? "is-active" : ""}`} onClick={() => { const next = !mapView; setMapView(next); const nextParams = new URLSearchParams(location.search); next ? nextParams.set("view", "map") : nextParams.delete("view"); navigate(`/search?${nextParams.toString()}`); }}><Map size={17} />{mapView ? "Hide map" : "Show map"}</Button></div>
+          {loading ? <SkeletonCards /> : visible.length ? <div className={mapView ? "results-with-map" : ""}><motion.div className="stay-grid" variants={cardGridMotion} initial="hidden" animate="show">{visible.map((stay) => <motion.div key={stay._id} variants={cardItemMotion}><StayCard stay={stay}/></motion.div>)}</motion.div>{mapView && <div className="map-panel" aria-label="Map of stay prices"><div className="map-road road-one"/><div className="map-road road-two"/><div className="map-road road-three"/><div className="map-water"/>{visible.slice(0, 8).map((stay, index) => <span key={stay._id} className="map-pin" style={{ left: `${15 + ((index * 23) % 72)}%`, top: `${18 + ((index * 31) % 65)}%` }}>${Number(stay.price || 0).toLocaleString()}</span>)}<small>Map preview · approximate stay locations</small></div>}</div> : <section className="search-empty search-empty--results"><div className="empty-art" aria-hidden="true"><svg viewBox="0 0 240 160"><circle cx="103" cy="72" r="39"/><path d="m132 101 34 34M34 137h172M65 81l22-22 17 17 20-25"/></svg></div><h2>No stays found for these filters</h2><p>Try another destination or clear your filters to see more places.</p><Button className="clear-filters" onClick={resetFilters}>Clear filters</Button></section>}
+        </section>
+      </div>}
+    </div>
+  </main>;
 };
-
 
 export default SearchPage;

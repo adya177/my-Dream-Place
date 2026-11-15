@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { toast } from "react-toastify";
 
 const CheckoutForm = ({ total }) => {
   const stripe = useStripe();
@@ -11,7 +12,7 @@ const CheckoutForm = ({ total }) => {
     setLoading(true);
 
     if (!stripe || !elements) {
-      alert("Stripe is not ready");
+      toast.error("Payment is not ready yet. Please try again.");
       setLoading(false);
       return;
     }
@@ -29,9 +30,9 @@ const CheckoutForm = ({ total }) => {
 
     if (error) {
       console.error("Payment Error:", error);
-      alert("Payment Failed");
+      toast.error("Payment failed. Please check your card details.");
     } else if (paymentIntent.status === "succeeded") {
-      alert("Payment Successful!");
+      toast.success("Payment successful!");
     }
   };
 

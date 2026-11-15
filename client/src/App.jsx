@@ -1,10 +1,10 @@
+import { lazy, Suspense } from "react";
 import Advertisement from "./components/Advertisement";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import HomePage from "./pages/HomePage";
-import SearchPage from "./pages/SearchPage";
 import ProductDetails from "./pages/ProductDetails";
 import Login from "./pages/Login";
 import UserDashboard from "./pages/User/UserDashboard";
@@ -29,6 +29,7 @@ import Hotels from "./components/Hotels";
 import DestinationGuide from "./pages/DestinationGuide.jsx/DestinationGuide.jsx";
 import contourPattern from "./assets/contour-pattern.svg";
 
+const SearchPage = lazy(() => import("./pages/SearchPage"));
 
 const PageIntro = ({ eyebrow, title, children }) => (
   <section className="bg-gradient-to-br from-blue-50 via-white to-sky-100 px-6 py-16 sm:py-20">
@@ -125,7 +126,7 @@ function App() {
         <Route path="/activities" element={<ActivitiesPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/search" element={<SearchPage />} />
+        <Route path="/search" element={<Suspense fallback={<main className="search-page"><div className="search-shell"><div className="skeleton-block skeleton-line medium"/><div className="stay-grid">{[0, 1, 2].map((item) => <div key={item} className="skeleton-card"><div className="skeleton-block skeleton-image"/><div className="skeleton-content"><div className="skeleton-block skeleton-line"/><div className="skeleton-block skeleton-line medium"/></div></div>)}</div></div></main>}><SearchPage /></Suspense>} />
         <Route path="/destination/:slug" element={<DestinationGuide />} />
         <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/login" element={<Login />} />
