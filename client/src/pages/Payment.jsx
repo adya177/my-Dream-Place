@@ -47,7 +47,7 @@ const Payment = () => {
   const applyCoupon = (event) => {
     event.preventDefault();
     const code = couponCode.trim().toUpperCase();
-    const percent = { WELCOME10: 10, FESTIVAL20: 20 }[code];
+    const percent = { DREAM25: 25, WEEKEND25: 25, DREAMBANK: 10 }[code];
     if (!percent) {
       setAppliedCoupon(null);
       toast.error("That promo code is not valid.");
@@ -228,6 +228,7 @@ const Payment = () => {
                 <button type="submit" className="rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2 focus:ring-offset-zinc-900">Apply</button>
               </div>
               {appliedCoupon && <p className="mt-2 text-xs font-medium text-emerald-300">{appliedCoupon.code} · {appliedCoupon.percent}% off applied</p>}
+              {!appliedCoupon && <p className="mt-2 text-[11px] text-zinc-500">Try DREAM25, WEEKEND25, or DREAMBANK.</p>}
             </form>
             {appliedCoupon && <div className="mt-4 flex justify-between text-sm text-emerald-300"><span>Promo discount ({appliedCoupon.percent}%)</span><span>−{currency(total - payableTotal)}</span></div>}
             <div className="mt-2 flex justify-between border-t border-zinc-700 pt-5 text-lg font-bold text-zinc-100"><span>Total</span><span>{currency(payableTotal)}</span></div>
