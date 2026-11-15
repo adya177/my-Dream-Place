@@ -1,17 +1,14 @@
-import React from "react";
-import Banner from "../components/Banner";
-import DreamVacation from "../components/DreamVacation";
-import NextTrip from "../components/NextTrip";
-import Hotels from "../components/Hotels";
+import Hero from "../components/Home/Hero";
+import GlassSearch from "../components/Home/GlassSearch";
+import BentoGrid from "../components/Home/BentoGrid";
 
 const HomePage = () => {
   return (
-    <div>
-      <Banner />
-      <DreamVacation />
-      <NextTrip />
-      <Hotels />
-    </div>
+    <main className="home-page">
+      <Hero />
+      <GlassSearch />
+      <BentoGrid />
+    </main>
   );
 };
 
