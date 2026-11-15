@@ -27,15 +27,16 @@ const UpdatePost = () => {
       const { data } = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/api/post/get-post/${params.slug}`
       );
-      const post = data.product;
+      const post = data?.product;
+      if (!post || typeof post !== "object") throw new Error("Listing data is missing");
       setTitle(post.title);
       setId(post._id);
       setDescription(post.description);
       setPrice(post.price);
-      setSelectedCategory(post.category._id);
-      setImages(post.images); // The image URLs will be set here
-      setNearArea(post.nearArea);
-      setFacilities(post.facilities);
+      setSelectedCategory(post.category?._id || "");
+      setImages(Array.isArray(post.images) ? post.images : []);
+      setNearArea(Array.isArray(post.nearArea) ? post.nearArea.join(", ") : post.nearArea || "");
+      setFacilities(Array.isArray(post.facilities) ? post.facilities.join(", ") : post.facilities || "");
       setGuest(post.guest);
       setHotelLocation(post.hotelLocation);
     } catch {
@@ -53,7 +54,7 @@ const UpdatePost = () => {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/api/category/get-category`
       );
-      setCategories(response.data.category);
+      setCategories(Array.isArray(response.data?.category) ? response.data.category.filter(Boolean) : []);
     } catch {
       toast.error("Could not load categories. Please try again.");
     }

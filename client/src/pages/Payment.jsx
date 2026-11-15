@@ -32,11 +32,12 @@ const Payment = () => {
 
   const items = useMemo(() => {
     const state = location.state;
-    if (Array.isArray(state?.products)) return state.products.map((item) => ({ ...item, postId: item.postId || item._id }));
+    if (Array.isArray(state?.products)) return state.products.filter((item) => item && typeof item === "object").map((item) => ({ ...item, postId: item.postId || item._id }));
     if (state?.postId) return [{ title: state.product || "Your stay", price: state.price, postId: state.postId, checkIn: state.checkIn, checkOut: state.checkOut }];
     return [];
   }, [location.state]);
-  const total = items.reduce((sum, item) => sum + Number(item.price || 0) * nightsFor(item), 0);
+  const safeBookings = Array.isArray(book) ? book.filter(Boolean) : [];
+  const total = items.reduce((sum, item) => sum + Number(item?.price || 0) * nightsFor(item), 0);
   const addressField = (key) => (event) => setAddress((current) => ({ ...current, [key]: event.target.value }));
 
 
@@ -69,7 +70,7 @@ const Payment = () => {
             isAvailable: false,
           });
         }));
-        const savedBookings = [...book, ...items.map((item, index) => ({
+        const savedBookings = [...safeBookings, ...items.map((item, index) => ({
           _id: "property:" + Date.now() + ":" + index,
           title: item.title,
           amount: Number(item.price || 0) * nightsFor(item),
@@ -124,7 +125,7 @@ const Payment = () => {
         });
         await axios.patch(import.meta.env.VITE_BASE_URL + "/api/booking/update-availability", { postId: item.postId, isAvailable: false });
       }));
-      const savedBookings = [...book, ...items.map((item, index) => ({ _id: result.paymentIntent.id + ":" + index, title: item.title, amount: Number(item.price || 0) * nightsFor(item), customerName, postId: item.postId, bookingDate: item.checkIn }))];
+      const savedBookings = [...safeBookings, ...items.map((item, index) => ({ _id: result.paymentIntent.id + ":" + index, title: item.title, amount: Number(item.price || 0) * nightsFor(item), customerName, postId: item.postId, bookingDate: item.checkIn }))];
       setBook(savedBookings);
       localStorage.setItem("booking", JSON.stringify(savedBookings));
       toast.success("Payment and booking successful.");

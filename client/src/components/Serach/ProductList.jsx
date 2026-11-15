@@ -2,13 +2,14 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 const ProductList = ({ products = [] }) => (
+  Array.isArray(products) ? (
   <div className="w-full min-w-0">
     <div className="mb-6 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
       <h2 className="text-xl font-semibold text-slate-900">{products.length} {products.length === 1 ? "stay" : "stays"} to explore</h2>
       <p className="text-sm text-slate-500">Select a stay to see details and availability.</p>
     </div>
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      {products.map((post) => (
+      {products.filter(Boolean).map((post) => (
         <Link to={"/product/" + post.slug} key={post._id || post.slug} aria-label={"View " + post.title} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
           <div className="relative h-56 bg-slate-100">
             {post.images?.[0] ? <img src={post.images[0]} alt={post.title || "Stay"} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-sm text-slate-500">Photo coming soon</div>}
@@ -23,6 +24,7 @@ const ProductList = ({ products = [] }) => (
       ))}
     </div>
   </div>
+  ) : <div className="w-full min-w-0" role="status">No stays to show.</div>
 );
 
 export default ProductList;

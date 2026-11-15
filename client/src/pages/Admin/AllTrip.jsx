@@ -1,16 +1,25 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import axios from "axios";
+import toast from "react-hot-toast";
+import SkeletonCard from "../../components/SkeletonCard";
 import { FaRegCalendarAlt, FaRegMoneyBillAlt, FaUserAlt } from "react-icons/fa";
 
 const AllTrip = () => {
   const [bookingList, setAllBookingList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const getAllTrip = async () => {
-    const response = await axios.get(
-      `${import.meta.env.VITE_BASE_URL}/api/booking/get-all-bookings`
-    );
-    setAllBookingList(response.data.bookings);
+    setLoading(true);
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/booking/get-all-bookings`);
+      setAllBookingList(Array.isArray(response.data?.bookings) ? response.data.bookings.filter(Boolean) : []);
+    } catch {
+      setAllBookingList([]);
+      toast.error("Could not load guest bookings.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -22,9 +31,9 @@ const AllTrip = () => {
       <Navbar />
       <section className="min-w-0 flex-1 p-2 sm:p-5"><p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Workspace</p><h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Guest bookings</h1><p className="mb-7 mt-2 text-slate-600">Review stay reservations and payment status.</p>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {bookingList.map((booking) => (
+        {loading ? <SkeletonCard count={3}/> : bookingList?.map?.((booking, index) => booking && (
           <div
-            key={booking._id}
+            key={booking._id || index}
             className="max-w-sm rounded-2xl border border-slate-200 bg-white shadow-sm"
           >
             <div className="p-4">
@@ -33,7 +42,7 @@ const AllTrip = () => {
               </h2>
               <p className="text-gray-600 text-sm mt-2">
                 <FaRegCalendarAlt className="inline-block mr-2" />
-                {new Date(booking.bookingDate).toLocaleDateString()}
+                {booking.bookingDate && !Number.isNaN(new Date(booking.bookingDate).getTime()) ? new Date(booking.bookingDate).toLocaleDateString() : "Date unavailable"}
               </p>
               <p className="text-gray-600 text-sm mt-2">
                 <FaRegMoneyBillAlt className="inline-block mr-2" />

@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 const CartPage = () => {
   const [auth] = useAuth();
   const [cart, setCart] = useCart();
+  const products = Array.isArray(cart) ? cart.filter((product) => product && typeof product === "object") : [];
   const navigate = useNavigate();
   const nightsFor = (item) => {
     if (!item.checkIn || !item.checkOut) return 1;
@@ -21,7 +22,7 @@ const CartPage = () => {
       return navigate("/login");
     }
 
-    if (!cart.length) {
+    if (!products.length) {
       toast.error("Your cart is empty.");
       return;
     }
@@ -29,7 +30,7 @@ const CartPage = () => {
     navigate("/payment", {
       state: {
         totalPrice: totalPrice(),
-        products: cart.map((product) => ({
+        products: products.map((product) => ({
           title: product.title,
           postId: product._id,
           price: product.price,
@@ -42,7 +43,7 @@ const CartPage = () => {
 
   const handleRemove = (id) => {
     try {
-      let myCart = [...cart];
+      let myCart = [...products];
       let index = myCart.findIndex((item) => item._id === id);
       if (index !== -1) {
         myCart.splice(index, 1);
@@ -56,7 +57,7 @@ const CartPage = () => {
 
   const totalPrice = () => {
     try {
-      return formatPrice(cart.reduce((total, item) => total + Number(item.price || 0) * nightsFor(item), 0));
+      return formatPrice(products.reduce((total, item) => total + Number(item?.price || 0) * nightsFor(item), 0));
     } catch {
       toast.error("Could not calculate your total. Please try again.");
       return formatPrice(0);
@@ -69,13 +70,13 @@ const CartPage = () => {
         <p className="text-sm font-semibold uppercase tracking-[.18em] text-blue-600">Your getaway</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Saved stays</h1>
         <p className="mt-2 text-slate-600">Review your choices and continue when you’re ready.</p>
-        {cart.length ? (
+        {products.length ? (
           <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
             <section aria-label="Saved stays" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-100 px-5 py-4 sm:px-6"><h2 className="font-semibold text-slate-900">{cart.length} {cart.length === 1 ? "stay" : "stays"} saved</h2></div>
+              <div className="border-b border-slate-100 px-5 py-4 sm:px-6"><h2 className="font-semibold text-slate-900">{products.length} {products.length === 1 ? "stay" : "stays"} saved</h2></div>
               <ul className="divide-y divide-slate-100 px-5 sm:px-6">
-                {cart.map((product) => (
-                  <li key={product._id} className="flex flex-wrap items-center gap-4 py-5 sm:flex-nowrap">
+                {products.map((product, index) => (
+                  <li key={product._id || index} className="flex flex-wrap items-center gap-4 py-5 sm:flex-nowrap">
                     {product.images?.[0] ? <img src={product.images[0]} alt={product.title || "Stay"} className="h-24 w-28 shrink-0 rounded-xl object-cover sm:h-28 sm:w-36" /> : <div className="flex h-24 w-28 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-500 sm:h-28 sm:w-36">Photo coming soon</div>}
                     <div className="min-w-0 flex-1"><h3 className="font-semibold text-slate-900">{product.title}</h3><p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">{product.description || "A place to make your next trip memorable."}</p><p className="mt-2 text-sm font-bold text-slate-900">{formatPrice(product.price)} <span className="font-normal text-slate-500">/ night</span></p></div>
                     <button type="button" onClick={() => handleRemove(product._id)} aria-label={`Remove ${product.title} from saved stays`} className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"><FaTrashAlt size={16} /></button>
@@ -85,7 +86,7 @@ const CartPage = () => {
             </section>
             <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:sticky lg:top-24">
               <h2 className="text-lg font-bold text-slate-900">Price summary</h2>
-              <div className="mt-5 space-y-3">{cart.map((product) => <div key={product._id} className="flex justify-between gap-4 text-sm text-slate-600"><span className="truncate">{product.title} · {nightsFor(product)} {nightsFor(product) === 1 ? "night" : "nights"}</span><span className="shrink-0 font-medium text-slate-800">{formatPrice(Number(product.price || 0) * nightsFor(product))}</span></div>)}</div>
+              <div className="mt-5 space-y-3">{products.map((product, index) => <div key={product._id || index} className="flex justify-between gap-4 text-sm text-slate-600"><span className="truncate">{product.title || "Your stay"} · {nightsFor(product)} {nightsFor(product) === 1 ? "night" : "nights"}</span><span className="shrink-0 font-medium text-slate-800">{formatPrice(Number(product.price || 0) * nightsFor(product))}</span></div>)}</div>
               <div className="mt-5 flex justify-between border-t border-slate-200 pt-5 text-lg font-bold text-slate-900"><span>Total</span><span>{totalPrice()}</span></div>
               <button type="button" className="mt-6 w-full rounded-xl bg-blue-600 px-5 py-3.5 font-semibold text-white shadow-sm transition hover:bg-blue-700" onClick={auth?.token ? handleCheckIn : () => navigate("/login")}>{auth?.token ? "Continue to checkout" : "Sign in to continue"}<span aria-hidden="true" className="ml-2">→</span></button>
               <p className="mt-3 text-center text-xs leading-5 text-slate-500">You can choose card payment or pay at the property during checkout.</p>

@@ -44,31 +44,39 @@ const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
 const offerLabel = (value) => String(value || "MEMBER RATE").replace(/MMTDEAL\s*[-:]?\s*/i, "").trim() || "SPECIAL OFFER";
 
 function HotelCard({ stay, checkIn, checkOut }) {
-  const images = stay.images?.length ? stay.images : [fallbackImage];
+  const images = Array.isArray(stay?.images) && stay.images.length ? stay.images : [fallbackImage];
   const [wishlisted, setWishlisted] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("dream-place-wishlist") || "[]").includes(stay.hotelId || stay._id); }
+    try {
+      const stored = JSON.parse(localStorage.getItem("dream-place-wishlist") || "[]");
+      return Array.isArray(stored) && stored.includes(stay?.hotelId || stay?._id);
+    }
     catch { return false; }
   });
-  const productLink = `/product/${stay.slug}${checkIn || checkOut ? `?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}) })}` : ""}`;
+  const productLink = `/product/${stay?.slug || ""}${checkIn || checkOut ? `?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}) })}` : ""}`;
   const toggleWishlist = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    const id = stay.hotelId || stay._id;
-    let saved = [];
-    try { saved = JSON.parse(localStorage.getItem("dream-place-wishlist") || "[]"); } catch { saved = []; }
-    const next = wishlisted ? saved.filter((item) => item !== id) : [...new Set([...saved, id])];
-    localStorage.setItem("dream-place-wishlist", JSON.stringify(next));
-    setWishlisted(!wishlisted);
-    toast.success(wishlisted ? "Removed from your wishlist" : "Added to your wishlist");
+    const id = stay?.hotelId || stay?._id;
+    if (!id) return toast.error("This stay could not be saved.");
+    try {
+      const stored = JSON.parse(localStorage.getItem("dream-place-wishlist") || "[]");
+      const saved = Array.isArray(stored) ? stored : [];
+      const next = wishlisted ? saved.filter((item) => item !== id) : [...new Set([...saved, id])];
+      localStorage.setItem("dream-place-wishlist", JSON.stringify(next));
+      setWishlisted(!wishlisted);
+      toast.success(wishlisted ? "Removed from your wishlist" : "Added to your wishlist");
+    } catch {
+      toast.error("Your wishlist is unavailable in this browser session.");
+    }
   };
-  const hotelName = stay.name || stay.title;
-  const rating = Number(stay.guestRating || stay.rating || 4);
-  const hotelPerks = stay.perks || stay.facilities || [];
+  const hotelName = stay?.name || stay?.title || "Featured stay";
+  const rating = Number(stay?.guestRating || stay?.rating || 4);
+  const hotelPerks = Array.isArray(stay?.perks) ? stay.perks : Array.isArray(stay?.facilities) ? stay.facilities : [];
 
   return <article className="hotel-card">
     <div className="hotel-card__photo">
       <Swiper className="hotel-card__swiper" modules={[Pagination]} pagination={{ clickable: true, dynamicBullets: true }} loop={images.length > 1}>
-        {images.map((image, index) => <SwiperSlide key={`${image}-${index}`}><Link to={productLink} tabIndex={-1} aria-hidden="true" className="hotel-card__photo-link"><img src={image} alt={`${hotelName} in ${stay.city} — photo ${index + 1}`} loading="lazy" onError={(event) => { event.currentTarget.src = fallbackImage; }} /></Link></SwiperSlide>)}
+        {images?.map?.((image, index) => <SwiperSlide key={`${image}-${index}`}><Link to={productLink} tabIndex={-1} aria-hidden="true" className="hotel-card__photo-link"><img src={image} alt={`${hotelName} in ${stay?.city || "India"} — photo ${index + 1}`} loading="lazy" onError={(event) => { event.currentTarget.src = fallbackImage; }} /></Link></SwiperSlide>)}
       </Swiper>
       <span className="hotel-card__promo"><BadgePercent size={13}/>{offerLabel(stay.promoTag)}</span>
       <motion.button type="button" aria-label={wishlisted ? `Remove ${hotelName} from wishlist` : `Add ${hotelName} to wishlist`} aria-pressed={wishlisted} className={`hotel-card__wishlist${wishlisted ? " is-saved" : ""}`} onClick={toggleWishlist} whileTap={{ scale: 1.35 }} animate={{ scale: wishlisted ? [1, 1.22, 1] : 1 }} transition={{ type: "spring", stiffness: 480, damping: 18 }}>
@@ -76,13 +84,13 @@ function HotelCard({ stay, checkIn, checkOut }) {
       </motion.button>
     </div>
     <Link to={productLink} className="hotel-card__content">
-      <div className="hotel-card__eyebrow"><span>{stay.starRating || 4}★ Hotel</span><span className="hotel-card__guest-rating"><Star size={13} fill="currentColor"/>{rating.toFixed(1)}/5 <span>({Number(stay.reviewCount || 0).toLocaleString("en-IN")})</span></span></div>
+      <div className="hotel-card__eyebrow"><span>{stay?.starRating || 4}★ Hotel</span><span className="hotel-card__guest-rating"><Star size={13} fill="currentColor"/>{rating.toFixed(1)}/5 <span>({Number(stay?.reviewCount || 0).toLocaleString("en-IN")})</span></span></div>
       <h3>{hotelName}</h3>
-      <p className="hotel-card__location"><MapPin size={14}/>{stay.locality ? `${stay.locality}, ` : ""}{stay.city}</p>
+      <p className="hotel-card__location"><MapPin size={14}/>{stay?.locality ? `${stay.locality}, ` : ""}{stay?.city || "India"}</p>
       <div className="hotel-card__perks">{hotelPerks.slice(0, 2).map((perk) => <span key={perk}>{perk}</span>)}</div>
       <div className="hotel-card__pricing">
-        <div><span className="hotel-card__original">{money(stay.originalPrice)}</span><strong>{money(stay.pricePerNight || stay.price)}</strong><span className="hotel-card__night">per night</span></div>
-        <span className="hotel-card__taxes">+ {money(stay.taxesAndFees)} taxes &amp; fees</span>
+        <div><span className="hotel-card__original">{money(stay?.originalPrice)}</span><strong>{money(stay?.pricePerNight || stay?.price)}</strong><span className="hotel-card__night">per night</span></div>
+        <span className="hotel-card__taxes">+ {money(stay?.taxesAndFees)} taxes &amp; fees</span>
       </div>
     </Link>
   </article>;
@@ -137,7 +145,7 @@ const SearchResults = () => {
     },
     getNextPageParam: (lastPage) => lastPage?.hasMore ? Number(lastPage.page || 1) + 1 : undefined,
   });
-  const results = useMemo(() => (hotelsQuery.data?.pages || []).flatMap((pageData) => Array.isArray(pageData?.posts) ? pageData.posts : []), [hotelsQuery.data?.pages]);
+  const results = useMemo(() => (hotelsQuery.data?.pages || []).flatMap((pageData) => Array.isArray(pageData?.posts) ? pageData.posts.filter(Boolean) : []), [hotelsQuery.data?.pages]);
   const firstPage = hotelsQuery.data?.pages?.[0];
   const loading = hotelsQuery.isLoading;
   const loadingMore = hotelsQuery.isFetchingNextPage;
@@ -166,7 +174,7 @@ const SearchResults = () => {
   useEffect(() => {
     if (firstPage) {
       const current = new URLSearchParams(searchKey);
-      setSearch((previous) => ({ ...previous, keyword: current.get("city") || current.get("keyword") || "", results: firstPage.posts || [] }));
+      setSearch((previous) => ({ ...previous, keyword: current.get("city") || current.get("keyword") || "", results: Array.isArray(firstPage.posts) ? firstPage.posts.filter(Boolean) : [] }));
     }
   }, [firstPage, searchKey, setSearch]);
 
@@ -273,7 +281,7 @@ const SearchResults = () => {
           {searchError && <p role="alert" className="search-error">{searchError}</p>}
           {loading ? <SkeletonCards/> : results.length ? <>
             <div className={mapView ? "results-with-map" : ""}>
-              <motion.div className="stay-grid" variants={cardGridMotion} initial="hidden" animate="show">{results.map((stay) => <motion.div key={stay.hotelId || stay._id} variants={cardItemMotion}><HotelCard stay={stay} checkIn={checkIn} checkOut={checkOut}/></motion.div>)}</motion.div>
+              <motion.div className="stay-grid" variants={cardGridMotion} initial="hidden" animate="show">{results?.map?.((stay, index) => stay && <motion.div key={stay.hotelId || stay._id || index} variants={cardItemMotion}><HotelCard stay={stay} checkIn={checkIn} checkOut={checkOut}/></motion.div>)}</motion.div>
               {mapView && <Suspense fallback={<div className="stay-map stay-map__loading" role="status">Loading map…</div>}><StayMap stays={results} checkIn={checkIn} checkOut={checkOut}/></Suspense>}
             </div>
             {loadingMore && <MoreSkeletonCards/>}

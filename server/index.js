@@ -55,6 +55,22 @@ app.use("/api/post", postRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/booking", bookingRoutes);
 
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "The requested route was not found." });
+});
+
+// Centralized Express error response for malformed requests and errors passed to next().
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  const statusCode = Number(error?.status || error?.statusCode);
+  const status = Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 600 ? statusCode : 500;
+  if (status >= 500) console.error("Unhandled request error:", error?.message || "Unknown error");
+  return res.status(status).json({
+    success: false,
+    message: status >= 500 ? "Internal Server Error" : (error?.message || "Request failed."),
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 
 const connectWithRetry = async () => {

@@ -11,10 +11,11 @@ const money = (amount) => Number(amount || 0).toLocaleString("en-IN", { style: "
 const YourOrder = () => {
   const [book, setBook] = useBook();
   const navigate = useNavigate();
+  const bookings = Array.isArray(book) ? book.filter((order) => order && typeof order === "object") : [];
 
   const handleCheckout = async (orderId, postId) => {
     try {
-      const updatedBooking = book.filter((item) => item._id !== orderId);
+      const updatedBooking = bookings.filter((item) => item?._id !== orderId);
       setBook(updatedBooking);
       localStorage.setItem("booking", JSON.stringify(updatedBooking));
       await axios.patch(`${import.meta.env.VITE_BASE_URL}/api/booking/update-availability`, { postId, isAvailable: true });
@@ -25,7 +26,6 @@ const YourOrder = () => {
     }
   };
 
-  const bookings = Array.isArray(book) ? book : [];
   return (
     <main className="min-h-[75vh] bg-slate-50 px-4 py-8 sm:px-8 lg:py-12">
       <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:flex">

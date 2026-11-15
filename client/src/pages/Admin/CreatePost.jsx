@@ -23,7 +23,7 @@ const CreatePost = () => {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/api/category/get-category`
       );
-      setCategory(response.data.category);
+      setCategory(Array.isArray(response.data?.category) ? response.data.category.filter(Boolean) : []);
     } catch {
       toast.error("Could not load categories. Please try again.");
     }

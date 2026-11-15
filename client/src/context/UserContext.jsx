@@ -9,7 +9,7 @@ const AuthProvider = ({ children }) => {
         ? { user: storedAuth.user ?? null, token: storedAuth.token }
         : { user: null, token: "" };
     } catch {
-      localStorage.removeItem("auth");
+      try { localStorage.removeItem("auth"); } catch { /* Storage may be unavailable in restricted contexts. */ }
       return { user: null, token: "" };
     }
   });

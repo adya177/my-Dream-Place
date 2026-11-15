@@ -109,8 +109,8 @@ export const loginController = async (req, res) => {
   }
 };
 
-export const getUserInfo = (req, res) => {
-  const authorization = req.headers.authorization;
+export const getUserInfo = async (req, res) => {
+  const authorization = req.headers?.authorization;
   const token = authorization?.startsWith("Bearer ")
     ? authorization.slice("Bearer ".length)
     : authorization;
@@ -119,20 +119,16 @@ export const getUserInfo = (req, res) => {
     return res.status(403).json({ message: "No token provided" });
   }
 
-  JWT.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-    if (err) {
+  if (!process.env.JWT_SECRET) return res.status(503).json({ message: "Authentication is not configured." });
+  try {
+    const decoded = JWT.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded?.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res.json({ user });
+  } catch (error) {
+    if (["JsonWebTokenError", "TokenExpiredError", "NotBeforeError"].includes(error?.name)) {
       return res.status(401).json({ message: "Invalid token" });
     }
-
-    try {
-      const user = await User.findById(decoded.id); // Assuming the ID is stored in the token
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      res.json({ user }); // Send the user data back to the client
-    } catch (error) {
-      res.status(500).json({ message: "Server error" });
-    }
-  });
+    return res.status(500).json({ message: "Server error" });
+  }
 };

@@ -18,21 +18,18 @@ const CheckoutForm = ({ total }) => {
       return;
     }
 
-    const { error, paymentIntent } = await stripe.confirmCardPayment(
-      `${import.meta.env.VITE_PAYMENT_SECRET}`, // Use server-generated client secret
-      {
-        payment_method: {
-          card: elements.getElement(CardElement),
-        },
-      }
-    );
-
-    setLoading(false);
-
-    if (error) {
-      toast.error("Payment failed. Please check your card details.");
-    } else if (paymentIntent.status === "succeeded") {
-      toast.success("Payment successful!");
+    try {
+      const { error, paymentIntent } = await stripe.confirmCardPayment(
+        `${import.meta.env.VITE_PAYMENT_SECRET}`,
+        { payment_method: { card: elements.getElement(CardElement) } }
+      );
+      if (error) toast.error("Payment failed. Please check your card details.");
+      else if (paymentIntent?.status === "succeeded") toast.success("Payment successful!");
+      else toast.error("Payment could not be confirmed. Please try again.");
+    } catch {
+      toast.error("Payment failed unexpectedly. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 

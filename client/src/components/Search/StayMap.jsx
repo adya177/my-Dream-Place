@@ -38,17 +38,19 @@ function MapViewport({ pins }) {
 export default function StayMap({ stays, checkIn, checkOut }) {
   const [coordinates, setCoordinates] = useState({});
   const [geocoding, setGeocoding] = useState(false);
+  const safeStays = Array.isArray(stays) ? stays.filter((stay) => stay && typeof stay === "object") : [];
   useEffect(() => {
     let active = true;
-    const missing = stays.filter((stay) => coordinates[stay._id] === undefined);
+    const missing = safeStays.filter((stay) => stay?._id && coordinates[stay._id] === undefined);
     if (!missing.length) return undefined;
     setGeocoding(true);
     Promise.all(missing.map(async (stay) => [stay._id, await resolveStay(stay)]))
       .then((entries) => { if (active) setCoordinates((current) => ({ ...current, ...Object.fromEntries(entries) })); })
+      .catch(() => { if (active) setCoordinates((current) => ({ ...current, ...Object.fromEntries(missing.map((stay) => [stay._id, null])) })); })
       .finally(() => active && setGeocoding(false));
     return () => { active = false; };
-  }, [stays, coordinates]);
-  const pins = useMemo(() => stays.flatMap((stay) => coordinates[stay._id] ? [{ stay, position: coordinates[stay._id] }] : []), [coordinates, stays]);
+  }, [safeStays, coordinates]);
+  const pins = useMemo(() => safeStays.flatMap((stay) => stay?._id && coordinates[stay._id] ? [{ stay, position: coordinates[stay._id] }] : []), [coordinates, safeStays]);
   const dateParams = new URLSearchParams();
   if (checkIn) dateParams.set("checkIn", checkIn);
   if (checkOut) dateParams.set("checkOut", checkOut);

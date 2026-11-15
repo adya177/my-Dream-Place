@@ -23,7 +23,7 @@ const Hotels = () => {
       return Array.isArray(data?.posts) ? data.posts : [];
     },
   });
-  const posts = useMemo(() => featuredQuery.data || [], [featuredQuery.data]);
+  const posts = useMemo(() => Array.isArray(featuredQuery.data) ? featuredQuery.data.filter(Boolean) : [], [featuredQuery.data]);
   useEffect(() => {
     if (featuredQuery.isError) toast.error("Could not load featured stays.");
   }, [featuredQuery.isError]);
