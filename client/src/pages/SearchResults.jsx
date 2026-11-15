@@ -94,6 +94,10 @@ function SkeletonCards() {
   return <div className="stay-grid" aria-label="Loading hotel listings">{Array.from({ length: 8 }, (_, item) => <div key={item} className="skeleton-card"><div className="skeleton-block skeleton-image"/><div className="skeleton-content"><div className="skeleton-block skeleton-line short"/><div className="skeleton-block skeleton-line"/><div className="skeleton-block skeleton-line medium"/></div></div>)}</div>;
 }
 
+function MoreSkeletonCards() {
+  return <div className="stay-grid stay-grid--loading-more" aria-label="Loading more hotel listings">{Array.from({ length: 4 }, (_, item) => <div key={item} className="skeleton-card"><div className="skeleton-block skeleton-image"/><div className="skeleton-content"><div className="skeleton-block skeleton-line short"/><div className="skeleton-block skeleton-line"/><div className="skeleton-block skeleton-line medium"/></div></div>)}</div>;
+}
+
 const SearchResults = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -272,6 +276,7 @@ const SearchResults = () => {
               <motion.div className="stay-grid" variants={cardGridMotion} initial="hidden" animate="show">{results.map((stay) => <motion.div key={stay.hotelId || stay._id} variants={cardItemMotion}><HotelCard stay={stay} checkIn={checkIn} checkOut={checkOut}/></motion.div>)}</motion.div>
               {mapView && <Suspense fallback={<div className="stay-map stay-map__loading" role="status">Loading map…</div>}><StayMap stays={results} checkIn={checkIn} checkOut={checkOut}/></Suspense>}
             </div>
+            {loadingMore && <MoreSkeletonCards/>}
             {hasMore && <div ref={loadMoreRef} className="load-more-trigger"><Button className="load-more" onClick={() => setPage((current) => current + 1)} disabled={loadingMore}>{loadingMore ? "Finding more stays…" : <>Load more hotels <ArrowDown size={16}/></>}</Button></div>}
           </> : <section className="search-empty search-empty--results"><div className="empty-art" aria-hidden="true"><svg viewBox="0 0 240 160"><circle cx="103" cy="72" r="39"/><path d="m132 101 34 34M34 137h172M65 81l22-22 17 17 20-25"/></svg></div><h2>No exact matches found</h2><p>Try another city or clear the filters to explore more stays.</p><Button className="clear-filters" onClick={resetFilters}>Clear filters</Button></section>}
         </section>
